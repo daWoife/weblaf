@@ -17,7 +17,9 @@
 
 package com.alee.utils;
 
-import com.alee.utils.collection.DoubleMap;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.jdk.Objects;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -25,22 +27,66 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * This class provides a set of utilities to work with various maps.
+ * This class provides a set of utilities to work with various {@link Map} implementations.
  *
  * @author Mikle Garin
  */
-
 public final class MapUtils
 {
     /**
+     * Private constructor to avoid instantiation.
+     */
+    private MapUtils ()
+    {
+        throw new UtilityException ( "Utility classes are not meant to be instantiated" );
+    }
+
+    /**
+     * Returns whether specified {@link Map} is empty or not.
+     *
+     * @param map {@link Map} to process
+     * @return {@code true} if specified {@link Map} is empty, {@code false} otherwise
+     */
+    public static boolean isEmpty ( @Nullable final Map map )
+    {
+        return map == null || map.isEmpty ();
+    }
+
+    /**
+     * Returns whether specified {@link Map} is empty or not.
+     *
+     * @param map {@link Map} to process
+     * @return {@code true} if specified {@link Map} is not empty, {@code false} otherwise
+     */
+    public static boolean notEmpty ( @Nullable final Map map )
+    {
+        return map != null && !map.isEmpty ();
+    }
+
+    /**
+     * Returns non-{@code null} {@link Map} that is either specified {@code map} or new empty {@link HashMap}.
+     *
+     * @param map {@link Map}
+     * @param <K> map key type
+     * @param <V> map value type
+     * @return non-{@code null} {@link Map} that is either specified {@code map} or new empty {@link HashMap}
+     */
+    @NotNull
+    public static <K, V> Map<K, V> nonNull ( @Nullable final Map<K, V> map )
+    {
+        return map != null ? map : new HashMap ( 0 );
+    }
+
+    /**
      * Returns copied Map.
      *
-     * @param map Map to copy
-     * @param <K> Map key type
-     * @param <V> Map value type
+     * @param map map to copy
+     * @param <K> map key type
+     * @param <V> map value type
      * @return copied Map
      */
-    public static <K, V> HashMap<K, V> copyMap ( final Map<K, V> map )
+    @NotNull
+    public static <K, V> HashMap<K, V> copyMap ( @NotNull final Map<K, V> map )
     {
         return new HashMap<K, V> ( map );
     }
@@ -53,7 +99,8 @@ public final class MapUtils
      * @param <V> HashMap value type
      * @return copied HashMap
      */
-    public static <K, V> HashMap<K, V> copyHashMap ( final HashMap<K, V> map )
+    @NotNull
+    public static <K, V> HashMap<K, V> copyHashMap ( @NotNull final HashMap<K, V> map )
     {
         return new HashMap<K, V> ( map );
     }
@@ -66,94 +113,24 @@ public final class MapUtils
      * @param <V> LinkedHashMap value type
      * @return copied LinkedHashMap
      */
-    public static <K, V> LinkedHashMap<K, V> copyLinkedHashMap ( final LinkedHashMap<K, V> map )
+    @NotNull
+    public static <K, V> LinkedHashMap<K, V> copyLinkedHashMap ( @NotNull final LinkedHashMap<K, V> map )
     {
         return new LinkedHashMap<K, V> ( map );
     }
 
     /**
-     * Returns copied DoubleMap.
+     * Returns newly created HashMap with the specified map data.
      *
-     * @param map DoubleMap to copy
-     * @param <K> DoubleMap key type
-     * @param <V> DoubleMap value type
-     * @return copied DoubleMap
+     * @param data data map
+     * @param <K>  key type
+     * @param <V>  value type
+     * @return newly created HashMap
      */
-    public static <K, V> DoubleMap<K, V> copyDoubleMap ( final DoubleMap<K, V> map )
+    @NotNull
+    public static <K, V> HashMap<K, V> newHashMap ( @NotNull final Map<K, V> data )
     {
-        return new DoubleMap<K, V> ( map );
-    }
-
-    /**
-     * Returns Map with cloned values.
-     *
-     * @param map Map to clone
-     * @param <K> Map key type
-     * @param <V> Map value type
-     * @return cloned Map
-     */
-    public static <K, V extends Cloneable> HashMap<K, V> cloneMap ( final Map<K, V> map )
-    {
-        final HashMap<K, V> clone = new HashMap<K, V> ( map.size () );
-        for ( final Map.Entry<K, V> entry : map.entrySet () )
-        {
-            clone.put ( entry.getKey (), ReflectUtils.cloneSafely ( entry.getValue () ) );
-        }
-        return clone;
-    }
-
-    /**
-     * Returns HashMap with cloned values.
-     *
-     * @param map HashMap to clone
-     * @param <K> HashMap key type
-     * @param <V> HashMap value type
-     * @return cloned HashMap
-     */
-    public static <K, V extends Cloneable> HashMap<K, V> cloneHashMap ( final HashMap<K, V> map )
-    {
-        final HashMap<K, V> clone = new HashMap<K, V> ( map.size () );
-        for ( final Map.Entry<K, V> entry : map.entrySet () )
-        {
-            clone.put ( entry.getKey (), ReflectUtils.cloneSafely ( entry.getValue () ) );
-        }
-        return clone;
-    }
-
-    /**
-     * Returns LinkedHashMap with cloned values.
-     *
-     * @param map LinkedHashMap to clone
-     * @param <K> LinkedHashMap key type
-     * @param <V> LinkedHashMap value type
-     * @return cloned LinkedHashMap
-     */
-    public static <K, V extends Cloneable> LinkedHashMap<K, V> cloneLinkedHashMap ( final LinkedHashMap<K, V> map )
-    {
-        final LinkedHashMap<K, V> clone = new LinkedHashMap<K, V> ( map.size () );
-        for ( final Map.Entry<K, V> entry : map.entrySet () )
-        {
-            clone.put ( entry.getKey (), ReflectUtils.cloneSafely ( entry.getValue () ) );
-        }
-        return clone;
-    }
-
-    /**
-     * Returns DoubleMap with cloned values.
-     *
-     * @param map DoubleMap to clone
-     * @param <K> DoubleMap key type
-     * @param <V> DoubleMap value type
-     * @return cloned DoubleMap
-     */
-    public static <K, V extends Cloneable> DoubleMap<K, V> cloneLinkedHashMap ( final DoubleMap<K, V> map )
-    {
-        final DoubleMap<K, V> clone = new DoubleMap<K, V> ( map.size () );
-        for ( final Map.Entry<K, V> entry : map.entrySet () )
-        {
-            clone.put ( entry.getKey (), ReflectUtils.cloneSafely ( entry.getValue () ) );
-        }
-        return clone;
+        return new HashMap<K, V> ( data );
     }
 
     /**
@@ -165,7 +142,8 @@ public final class MapUtils
      * @param <V>   value type
      * @return newly created HashMap
      */
-    public static <K, V> HashMap<K, V> newHashMap ( final K key, final V value )
+    @NotNull
+    public static <K, V> HashMap<K, V> newHashMap ( @Nullable final K key, @Nullable final V value )
     {
         final HashMap<K, V> map = new HashMap<K, V> ( 1 );
         map.put ( key, value );
@@ -175,13 +153,15 @@ public final class MapUtils
     /**
      * Returns newly created HashMap with the specified key and value pairs added.
      *
-     * @param objects key-value pairs
+     * @param objects mixed keys and values
      * @param <K>     key type
      * @param <V>     value type
      * @return newly created HashMap
      */
-    public static <K, V> HashMap<K, V> newHashMap ( final Object... objects )
+    @NotNull
+    public static <K, V> HashMap<K, V> newHashMap ( @Nullable final Object... objects )
     {
+        final HashMap<K, V> hashMap;
         if ( objects != null && objects.length > 0 )
         {
             if ( objects.length % 2 == 0 )
@@ -191,7 +171,7 @@ public final class MapUtils
                 {
                     map.put ( ( K ) objects[ i ], ( V ) objects[ i + 1 ] );
                 }
-                return map;
+                hashMap = map;
             }
             else
             {
@@ -200,8 +180,9 @@ public final class MapUtils
         }
         else
         {
-            return new HashMap<K, V> ( 0 );
+            hashMap = new HashMap<K, V> ( 0 );
         }
+        return hashMap;
     }
 
     /**
@@ -213,7 +194,8 @@ public final class MapUtils
      * @param <V>   value type
      * @return newly created LinkedHashMap
      */
-    public static <K, V> LinkedHashMap<K, V> newLinkedHashMap ( final K key, final V value )
+    @NotNull
+    public static <K, V> LinkedHashMap<K, V> newLinkedHashMap ( @Nullable final K key, @Nullable final V value )
     {
         final LinkedHashMap<K, V> map = new LinkedHashMap<K, V> ( 1 );
         map.put ( key, value );
@@ -228,8 +210,10 @@ public final class MapUtils
      * @param <V>     value type
      * @return newly created LinkedHashMap
      */
-    public static <K, V> LinkedHashMap<K, V> newLinkedHashMap ( final Object... objects )
+    @NotNull
+    public static <K, V> LinkedHashMap<K, V> newLinkedHashMap ( @Nullable final Object... objects )
     {
+        final LinkedHashMap<K, V> linkedHashMap;
         if ( objects != null && objects.length > 0 )
         {
             if ( objects.length % 2 == 0 )
@@ -239,7 +223,7 @@ public final class MapUtils
                 {
                     map.put ( ( K ) objects[ i ], ( V ) objects[ i + 1 ] );
                 }
-                return map;
+                linkedHashMap = map;
             }
             else
             {
@@ -248,8 +232,9 @@ public final class MapUtils
         }
         else
         {
-            return new LinkedHashMap<K, V> ( 0 );
+            linkedHashMap = new LinkedHashMap<K, V> ( 0 );
         }
+        return linkedHashMap;
     }
 
     /**
@@ -260,13 +245,13 @@ public final class MapUtils
      * @param <K>   key type
      * @param <V>   value type
      */
-    public static <K, V> void removeAllValues ( final Map<K, V> map, final V value )
+    public static <K, V> void removeAllValues ( @NotNull final Map<K, V> map, @Nullable final V value )
     {
         final Iterator<Map.Entry<K, V>> iterator = map.entrySet ().iterator ();
         while ( iterator.hasNext () )
         {
             final Map.Entry<K, V> entry = iterator.next ();
-            if ( CompareUtils.equals ( entry.getValue (), value ) )
+            if ( Objects.equals ( entry.getValue (), value ) )
             {
                 iterator.remove ();
             }
@@ -281,7 +266,8 @@ public final class MapUtils
      * @param <V>  value type
      * @return new map containing all provided maps merged into it
      */
-    public static <K, V> HashMap<K, V> merge ( final Map<K, V>... maps )
+    @NotNull
+    public static <K, V> HashMap<K, V> merge ( @NotNull final Map<K, V>... maps )
     {
         // Preparing new map size
         int size = 0;

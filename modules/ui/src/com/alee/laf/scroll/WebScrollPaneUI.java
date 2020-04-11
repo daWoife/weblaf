@@ -17,337 +17,557 @@
 
 package com.alee.laf.scroll;
 
-import com.alee.global.StyleConstants;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.data.Corner;
+import com.alee.extended.canvas.WebCanvas;
 import com.alee.laf.WebLookAndFeel;
-import com.alee.managers.focus.DefaultFocusTracker;
-import com.alee.managers.focus.FocusManager;
-import com.alee.managers.focus.FocusTracker;
+import com.alee.managers.style.*;
+import com.alee.painter.PainterSupport;
 import com.alee.utils.LafUtils;
 import com.alee.utils.SwingUtils;
-import com.alee.utils.laf.ShapeProvider;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.ScrollBarUI;
 import javax.swing.plaf.basic.BasicScrollPaneUI;
 import java.awt.*;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * User: mgarin Date: 29.04.11 Time: 15:34
+ * Custom UI for {@link JScrollPane} component.
+ *
+ * @author Mikle Garin
  */
-
-public class WebScrollPaneUI extends BasicScrollPaneUI implements ShapeProvider
+public class WebScrollPaneUI extends BasicScrollPaneUI
 {
     /**
-     * todo 1. Implement optional shade layer
+     * Listeners.
      */
-
-    private boolean drawBorder = WebScrollPaneStyle.drawBorder;
-    private Color borderColor = WebScrollPaneStyle.borderColor;
-    private Color darkBorder = WebScrollPaneStyle.darkBorder;
-
-    private int round = WebScrollPaneStyle.round;
-    private int shadeWidth = WebScrollPaneStyle.shadeWidth;
-    private Insets margin = WebScrollPaneStyle.margin;
-
-    private boolean drawFocus = WebScrollPaneStyle.drawFocus;
-    private boolean drawBackground = WebScrollPaneStyle.drawBackground;
-
-    private WebScrollPaneCorner lowerTrailing;
-    private WebScrollPaneCorner lowerLeading;
-    private WebScrollPaneCorner upperTrailing;
-    private PropertyChangeListener propertyChangeListener;
+    protected transient PropertyChangeListener propertyChangeListener;
+    protected transient ContainerAdapter viewListener;
 
     /**
-     * Scroll pane focus tracker.
+     * Runtime variables.
      */
-    protected FocusTracker focusTracker;
+    protected transient Map<Corner, JComponent> cornersCache;
 
-    private boolean focused = false;
-
-    @SuppressWarnings ("UnusedParameters")
-    public static ComponentUI createUI ( final JComponent c )
+    /**
+     * Returns an instance of the {@link WebScrollPaneUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
+     *
+     * @param c component that will use UI instance
+     * @return instance of the {@link WebScrollPaneUI}
+     */
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebScrollPaneUI ();
     }
 
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
+        // Installing UI
         super.installUI ( c );
 
-        // Default settings
-        SwingUtils.setOrientation ( scrollpane );
-        LookAndFeel.installProperty ( scrollpane, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
-        scrollpane.setBackground ( StyleConstants.backgroundColor );
+        // Applying skin
+        StyleManager.installSkin ( scrollpane );
 
-        // Updating scroll bars
-        // todo Remove these when scroll pane painter will be completed
-        final ScrollBarUI vui = scrollpane.getVerticalScrollBar ().getUI ();
-        if ( vui instanceof WebScrollBarUI )
+        // Scroll bars styling
+        StyleId.scrollpaneViewport.at ( scrollpane ).set ( scrollpane.getViewport () );
+        StyleId.scrollpaneVerticalBar.at ( scrollpane ).set ( scrollpane.getVerticalScrollBar () );
+        StyleId.scrollpaneHorizontalBar.at ( scrollpane ).set ( scrollpane.getHorizontalScrollBar () );
+
+        // Updating scrollpane corner
+        cornersCache = new HashMap<Corner, JComponent> ( 4 );
+        updateCorners ();
+
+        // Viewport listener
+        viewListener = new ContainerAdapter ()
         {
-            final WebScrollBarUI ui = ( WebScrollBarUI ) vui;
-            ui.setPaintTrack ( drawBorder );
-        }
-        final ScrollBarUI hui = scrollpane.getHorizontalScrollBar ().getUI ();
-        if ( hui instanceof WebScrollBarUI )
+            @Override
+            public void componentAdded ( @NotNull final ContainerEvent e )
+            {
+                removeCorners ();
+                updateCorners ();
+            }
+
+            @Override
+            public void componentRemoved ( @NotNull final ContainerEvent e )
+            {
+                removeCorners ();
+                updateCorners ();
+            }
+        };
+        final JViewport viewport = scrollpane.getViewport ();
+        if ( viewport != null )
         {
-            final WebScrollBarUI ui = ( WebScrollBarUI ) hui;
-            ui.setPaintTrack ( drawBorder );
+            viewport.addContainerListener ( viewListener );
         }
 
-        // Faster wheel scrolling by default
-        scrollpane.getVerticalScrollBar ().putClientProperty ( "JScrollBar.fastWheelScrolling", Boolean.TRUE );
-        scrollpane.getHorizontalScrollBar ().putClientProperty ( "JScrollBar.fastWheelScrolling", Boolean.TRUE );
-
-        // Special
-        LafUtils.setScrollBarStyleId ( scrollpane, "scroll-pane" );
-
-        //        // Shade layer
-        //        final WebPanel shadeLayer = new WebPanel ( new AbstractPainter ()
-        //        {
-        //            final int shadeWidth = 15;
-        //            final float transparency = 0.7f;
-        //
-        //            @Override
-        //            public void paint ( final Graphics2D g2d, final Rectangle bounds, final Component c )
-        //            {
-        //                final JViewport viewport = scrollpane.getViewport ();
-        //                final Component vc = viewport.getView ();
-        //                if ( vc != null && vc instanceof JComponent )
-        //                {
-        //                    final JComponent view = ( JComponent ) vc;
-        //                    final Rectangle vr = view.getVisibleRect ();
-        //
-        //                    final int topY = vr.y;
-        //                    if ( topY > 0 )
-        //                    {
-        //                        final float max = topY / 2;
-        //                        final float opacity = ( shadeWidth < max ? 1f : ( 1f - ( shadeWidth - max ) / shadeWidth ) ) * transparency;
-        //                        final NinePatchIcon npi = NinePatchUtils.getShadeIcon ( shadeWidth, 0, opacity );
-        //                        final Dimension ps = npi.getPreferredSize ();
-        //                        npi.paintIcon ( g2d, -shadeWidth * 2, shadeWidth - ps.height, vr.width + shadeWidth * 4, ps.height );
-        //                    }
-        //
-        //                    final int bottomY = vr.y + vr.height;
-        //                    final int height = view.getHeight ();
-        //                    if ( bottomY < height )
-        //                    {
-        //                        final float max = ( height - bottomY ) / 2;
-        //                        final float opacity = ( shadeWidth < max ? 1f : ( 1f - ( shadeWidth - max ) / shadeWidth ) ) * transparency;
-        //                        final NinePatchIcon npi = NinePatchUtils.getShadeIcon ( shadeWidth, 0, opacity );
-        //                        final Dimension ps = npi.getPreferredSize ();
-        //                        npi.paintIcon ( g2d, -shadeWidth * 2, vr.height - shadeWidth, vr.width + shadeWidth * 4, ps.height );
-        //                    }
-        //                }
-        //            }
-        //        } );
-        //        scrollpane.add ( shadeLayer, scrollpane.getComponentCount () );
-        //        scrollpane.setLayout ( new WebScrollPaneLayout.UIResource ( shadeLayer ) );
-
-        // Border
-        updateBorder ();
-
-        // Styled scroll pane corner
-        scrollpane.setCorner ( JScrollPane.LOWER_LEADING_CORNER, getLowerLeadingCorner () );
-        scrollpane.setCorner ( JScrollPane.LOWER_TRAILING_CORNER, getLowerTrailingCorner () );
-        scrollpane.setCorner ( JScrollPane.UPPER_TRAILING_CORNER, getUpperTrailing () );
+        // Property change listener
         propertyChangeListener = new PropertyChangeListener ()
         {
             @Override
-            public void propertyChange ( final PropertyChangeEvent evt )
+            public void propertyChange ( @NotNull final PropertyChangeEvent evt )
             {
-                scrollpane.setCorner ( JScrollPane.LOWER_LEADING_CORNER, getLowerLeadingCorner () );
-                scrollpane.setCorner ( JScrollPane.LOWER_TRAILING_CORNER, getLowerTrailingCorner () );
-                scrollpane.setCorner ( JScrollPane.UPPER_TRAILING_CORNER, getUpperTrailing () );
+                final String property = evt.getPropertyName ();
+                if ( property.equals ( WebLookAndFeel.COMPONENT_ORIENTATION_PROPERTY ) )
+                {
+                    // Simply updating corners
+                    removeCorners ();
+                    updateCorners ();
+                }
+                else if ( property.equals ( WebScrollPane.VIEWPORT_PROPERTY ) )
+                {
+                    // Updating old viewport style and removing listener
+                    if ( evt.getOldValue () != null )
+                    {
+                        final JViewport viewport = ( JViewport ) evt.getOldValue ();
+                        viewport.removeContainerListener ( viewListener );
+                        StyleId.viewport.set ( viewport );
+                    }
+
+                    // Updating new viewport style and adding listener
+                    if ( evt.getNewValue () != null )
+                    {
+                        final JViewport viewport = ( JViewport ) evt.getNewValue ();
+                        viewport.addContainerListener ( viewListener );
+                        StyleId.scrollpaneViewport.at ( scrollpane ).set ( scrollpane.getViewport () );
+                    }
+
+                    // Updating corners
+                    removeCorners ();
+                    updateCorners ();
+                }
+                else if ( property.equals ( WebScrollPane.VERTICAL_SCROLLBAR_PROPERTY ) )
+                {
+                    final JScrollBar vsb = scrollpane.getVerticalScrollBar ();
+                    if ( vsb != null )
+                    {
+                        StyleId.scrollpaneVerticalBar.at ( scrollpane ).set ( vsb );
+                    }
+                }
+                else if ( property.equals ( WebScrollPane.HORIZONTAL_SCROLLBAR_PROPERTY ) )
+                {
+                    final JScrollBar hsb = scrollpane.getHorizontalScrollBar ();
+                    if ( hsb != null )
+                    {
+                        StyleId.scrollpaneHorizontalBar.at ( scrollpane ).set ( hsb );
+                    }
+                }
             }
         };
-        scrollpane.addPropertyChangeListener ( WebLookAndFeel.ORIENTATION_PROPERTY, propertyChangeListener );
-
-        // Focus tracker for the scroll pane content
-        focusTracker = new DefaultFocusTracker ()
-        {
-            @Override
-            public boolean isTrackingEnabled ()
-            {
-                return drawBorder && drawFocus;
-            }
-
-            @Override
-            public void focusChanged ( final boolean focused )
-            {
-                WebScrollPaneUI.this.focused = focused;
-                scrollpane.repaint ();
-            }
-        };
-        FocusManager.addFocusTracker ( scrollpane, focusTracker );
+        scrollpane.addPropertyChangeListener ( propertyChangeListener );
     }
 
     @Override
-    public void uninstallUI ( final JComponent c )
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        scrollpane.removePropertyChangeListener ( WebLookAndFeel.ORIENTATION_PROPERTY, propertyChangeListener );
-        scrollpane.remove ( getLowerLeadingCorner () );
-        scrollpane.remove ( getLowerTrailingCorner () );
-        scrollpane.remove ( getUpperTrailing () );
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( scrollpane );
 
-        FocusManager.removeFocusTracker ( focusTracker );
+        // Cleaning up listeners
+        scrollpane.removePropertyChangeListener ( propertyChangeListener );
 
+        // Removing listener and custom corners
+        removeCorners ();
+        cornersCache = null;
+
+        // Resetting layout to default used within JScrollPane
+        // This update will ensure that we properly cleanup custom layout
+        scrollpane.setLayout ( new ScrollPaneLayout.UIResource () );
+
+        // Uninstalling UI
         super.uninstallUI ( c );
     }
 
-    private WebScrollPaneCorner getLowerLeadingCorner ()
-    {
-        if ( lowerLeading == null )
-        {
-            lowerLeading = new WebScrollPaneCorner ( JScrollPane.LOWER_LEADING_CORNER );
-        }
-        return lowerLeading;
-    }
-
-    private WebScrollPaneCorner getLowerTrailingCorner ()
-    {
-        if ( lowerTrailing == null )
-        {
-            lowerTrailing = new WebScrollPaneCorner ( JScrollPane.LOWER_TRAILING_CORNER );
-        }
-        return lowerTrailing;
-    }
-
-    private WebScrollPaneCorner getUpperTrailing ()
-    {
-        if ( upperTrailing == null )
-        {
-            upperTrailing = new WebScrollPaneCorner ( JScrollPane.UPPER_TRAILING_CORNER );
-        }
-        return upperTrailing;
-    }
-
+    @NotNull
     @Override
-    public Shape provideShape ()
+    protected MouseWheelListener createMouseWheelListener ()
     {
-        return LafUtils.getWebBorderShape ( scrollpane, getShadeWidth (), getRound () );
+        return new MouseWheelListener ()
+        {
+            @Override
+            public void mouseWheelMoved ( @NotNull final MouseWheelEvent e )
+            {
+                if ( scrollpane.isWheelScrollingEnabled () && e.getWheelRotation () != 0 )
+                {
+                    // Determining scroll orientation
+                    // This is the only part of the original {@link BasicScrollPaneUI} which is modified
+                    // It provides HORIZONTAL instead of VERTICAL in case `SHIFT` modified is available
+                    final JScrollBar toScroll;
+                    final int orientation;
+                    final JScrollBar vsb = scrollpane.getVerticalScrollBar ();
+                    if ( vsb == null || !vsb.isVisible () || SwingUtils.isShift ( e ) )
+                    {
+                        toScroll = scrollpane.getHorizontalScrollBar ();
+                        orientation = SwingConstants.HORIZONTAL;
+                    }
+                    else
+                    {
+                        toScroll = vsb;
+                        orientation = SwingConstants.VERTICAL;
+                    }
+
+                    // Only scrolling when we were able to determine scroll axis
+                    if ( toScroll != null && toScroll.isVisible () )
+                    {
+                        // Properly consuming event
+                        e.consume ();
+
+                        // Performing scroll
+                        final int direction = e.getWheelRotation () < 0 ? -1 : 1;
+                        if ( e.getScrollType () == MouseWheelEvent.WHEEL_UNIT_SCROLL )
+                        {
+                            final JViewport vp = scrollpane.getViewport ();
+                            if ( vp != null )
+                            {
+                                final Component component = vp.getView ();
+                                final int units = Math.abs ( e.getUnitsToScroll () );
+
+                                // When the scrolling speed is set to maximum, it's possible for a single wheel click to scroll by more
+                                // units than will fit in the visible area. This makes it hard/impossible to get to certain parts of the
+                                // scrolling Component with the wheel. To make for more accurate low-speed scrolling, we limit scrolling
+                                // to the block increment if the wheel was only rotated one click.
+                                final boolean limitScroll = Math.abs ( e.getWheelRotation () ) == 1;
+
+                                // Check if we should use the visibleRect trick
+                                final Object fastWheelScroll = toScroll.getClientProperty ( "JScrollBar.fastWheelScrolling" );
+                                if ( Boolean.TRUE == fastWheelScroll && component instanceof Scrollable )
+                                {
+                                    // 5078454: Under maximum acceleration, we may scroll by many 100s of units in ~1 second.
+                                    // BasicScrollBarUI.scrollByUnits() can bog down the EDT with repaints in this situation.
+                                    // However, the Scrollable interface allows us to pass in an arbitrary visibleRect.
+                                    // This allows us to accurately calculate the total scroll amount, and then update the GUI once.
+                                    // This technique provides much faster accelerated wheel scrolling.
+                                    final Scrollable scrollComp = ( Scrollable ) component;
+                                    final Rectangle viewRect = vp.getViewRect ();
+                                    final int startingX = viewRect.x;
+                                    final boolean leftToRight = component.getComponentOrientation ().isLeftToRight ();
+                                    int scrollMin = toScroll.getMinimum ();
+                                    int scrollMax = toScroll.getMaximum () - toScroll.getModel ().getExtent ();
+
+                                    if ( limitScroll )
+                                    {
+                                        final int blockIncr = scrollComp.getScrollableBlockIncrement ( viewRect, orientation, direction );
+                                        if ( direction < 0 )
+                                        {
+                                            scrollMin = Math.max ( scrollMin, toScroll.getValue () - blockIncr );
+                                        }
+                                        else
+                                        {
+                                            scrollMax = Math.min ( scrollMax, toScroll.getValue () + blockIncr );
+                                        }
+                                    }
+
+                                    for ( int i = 0; i < units; i++ )
+                                    {
+                                        // Modify the visible rect for the next unit, and check to see if we're at the end already
+                                        final int unitIncr = scrollComp.getScrollableUnitIncrement ( viewRect, orientation, direction );
+                                        if ( orientation == SwingConstants.VERTICAL )
+                                        {
+                                            if ( direction < 0 )
+                                            {
+                                                viewRect.y -= unitIncr;
+                                                if ( viewRect.y <= scrollMin )
+                                                {
+                                                    viewRect.y = scrollMin;
+                                                    break;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                viewRect.y += unitIncr;
+                                                if ( viewRect.y >= scrollMax )
+                                                {
+                                                    viewRect.y = scrollMax;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if ( leftToRight ? direction < 0 : direction > 0 )
+                                            {
+                                                // Scroll left
+                                                viewRect.x -= unitIncr;
+                                                if ( leftToRight )
+                                                {
+                                                    if ( viewRect.x < scrollMin )
+                                                    {
+                                                        viewRect.x = scrollMin;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // Scroll right
+                                                viewRect.x += unitIncr;
+                                                if ( leftToRight )
+                                                {
+                                                    if ( viewRect.x > scrollMax )
+                                                    {
+                                                        viewRect.x = scrollMax;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Set the final view position on the ScrollBar
+                                    if ( orientation == SwingConstants.VERTICAL )
+                                    {
+                                        toScroll.setValue ( viewRect.y );
+                                    }
+                                    else
+                                    {
+                                        if ( leftToRight )
+                                        {
+                                            toScroll.setValue ( viewRect.x );
+                                        }
+                                        else
+                                        {
+                                            // RTL scrollbars are oriented with minValue on the right and maxValue on the left
+                                            int newPos = toScroll.getValue () - ( viewRect.x - startingX );
+                                            if ( newPos < scrollMin )
+                                            {
+                                                newPos = scrollMin;
+                                            }
+                                            else if ( newPos > scrollMax )
+                                            {
+                                                newPos = scrollMax;
+                                            }
+                                            toScroll.setValue ( newPos );
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // Viewport's view is not a Scrollable, or fast wheel scrolling is not enabled
+                                    scrollByUnits ( toScroll, direction, units, limitScroll );
+                                }
+                            }
+                        }
+                        else if ( e.getScrollType () == MouseWheelEvent.WHEEL_BLOCK_SCROLL )
+                        {
+                            scrollByBlock ( toScroll, direction );
+                        }
+                    }
+                }
+            }
+        };
     }
 
-    private void updateBorder ()
+    /**
+     * Method for scrolling by a unit increment.
+     * Added for mouse wheel scrolling support, RFE 4202656.
+     *
+     * This method is called from {@link BasicScrollPaneUI} to implement wheel scrolling, as well as from scrollByUnit().
+     *
+     * If {@code limitByBlock} is set to {@code true}, the scrollbar will scroll at least 1 unit increment,
+     * but will not scroll farther than the block increment.
+     *
+     * This is a full copy of {@code javax.swing.plaf.basic.BasicScrollBarUI#scrollByUnits(javax.swing.JScrollBar, int, int, boolean)}.
+     *
+     * @param scrollbar    scroll bar
+     * @param direction    scroll direction
+     * @param units        scrolled untins
+     * @param limitToBlock whether or not should limit scroll to block increment
+     */
+    protected void scrollByUnits ( @NotNull final JScrollBar scrollbar, final int direction, final int units, final boolean limitToBlock )
     {
-        if ( scrollpane != null )
-        {
-            // Preserve old borders
-            if ( SwingUtils.isPreserveBorders ( scrollpane ) )
-            {
-                return;
-            }
+        int delta;
+        int limit = -1;
 
-            final Insets insets;
-            if ( drawBorder )
+        if ( limitToBlock )
+        {
+            if ( direction < 0 )
             {
-                insets = new Insets ( shadeWidth + 1 + margin.top, shadeWidth + 1 + margin.left, shadeWidth + 1 + margin.bottom,
-                        shadeWidth + 1 + margin.right );
+                limit = scrollbar.getValue () - scrollbar.getBlockIncrement ( direction );
             }
             else
             {
-                insets = new Insets ( margin.top, margin.left, margin.bottom, margin.right );
+                limit = scrollbar.getValue () + scrollbar.getBlockIncrement ( direction );
             }
-            scrollpane.setBorder ( LafUtils.createWebBorder ( insets ) );
+        }
+
+        for ( int i = 0; i < units; i++ )
+        {
+            if ( direction > 0 )
+            {
+                delta = scrollbar.getUnitIncrement ( direction );
+            }
+            else
+            {
+                delta = -scrollbar.getUnitIncrement ( direction );
+            }
+
+            final int oldValue = scrollbar.getValue ();
+            int newValue = oldValue + delta;
+
+            // Check for overflow.
+            if ( delta > 0 && newValue < oldValue )
+            {
+                newValue = scrollbar.getMaximum ();
+            }
+            else if ( delta < 0 && newValue > oldValue )
+            {
+                newValue = scrollbar.getMinimum ();
+            }
+            if ( oldValue == newValue )
+            {
+                break;
+            }
+
+            if ( limitToBlock && i > 0 )
+            {
+                if ( direction < 0 && newValue < limit || direction > 0 && newValue > limit )
+                {
+                    break;
+                }
+            }
+            scrollbar.setValue ( newValue );
         }
     }
 
-    public boolean isDrawBorder ()
+    /**
+     * Method for scrolling by a block increment.
+     * Added for mouse wheel scrolling support, RFE 4202656.
+     *
+     * This method is called from {@link BasicScrollPaneUI} to implement wheel scrolling, and also from scrollByBlock().
+     *
+     * This is a full copy of {@code javax.swing.plaf.basic.BasicScrollBarUI#scrollByBlock(javax.swing.JScrollBar, int)}.
+     *
+     * @param scrollbar scroll bar
+     * @param direction scroll direction
+     */
+    protected void scrollByBlock ( @NotNull final JScrollBar scrollbar, final int direction )
     {
-        return drawBorder;
+        final int oldValue = scrollbar.getValue ();
+        final int blockIncrement = scrollbar.getBlockIncrement ( direction );
+        final int delta = blockIncrement * ( direction > 0 ? +1 : -1 );
+        int newValue = oldValue + delta;
+
+        // Check for overflow.
+        if ( delta > 0 && newValue < oldValue )
+        {
+            newValue = scrollbar.getMaximum ();
+        }
+        else if ( delta < 0 && newValue > oldValue )
+        {
+            newValue = scrollbar.getMinimum ();
+        }
+
+        scrollbar.setValue ( newValue );
     }
 
-    public void setDrawBorder ( final boolean drawBorder )
+    /**
+     * Updates custom scrollpane corners.
+     */
+    protected void updateCorners ()
     {
-        this.drawBorder = drawBorder;
-        updateBorder ();
+        final ScrollPaneCornerProvider provider = getScrollCornerProvider ();
+        for ( final Corner type : Corner.values () )
+        {
+            JComponent corner = cornersCache.get ( type );
+            if ( corner == null )
+            {
+                if ( provider != null )
+                {
+                    corner = provider.getCorner ( type );
+                }
+                if ( corner == null )
+                {
+                    // todo Make this corner optional
+                    if ( type == Corner.lowerLeading || type == Corner.lowerTrailing || type == Corner.upperTrailing )
+                    {
+                        corner = new WebCanvas ( StyleId.scrollpaneCorner.at ( scrollpane ), type.name () );
+                    }
+                }
+            }
+            if ( corner != null )
+            {
+                cornersCache.put ( type, corner );
+                scrollpane.setCorner ( type.getScrollPaneConstant (), corner );
+            }
+        }
     }
 
-    public int getRound ()
+    /**
+     * Removes custom scrollpane corners.
+     */
+    protected void removeCorners ()
     {
-        return round;
+        for ( final Corner type : Corner.values () )
+        {
+            final String key = type.getScrollPaneConstant ();
+            final Component corner = scrollpane.getCorner ( key );
+            if ( corner != null && cornersCache.containsValue ( corner ) )
+            {
+                scrollpane.setCorner ( key, null );
+            }
+        }
+        cornersCache.clear ();
     }
 
-    public void setRound ( final int round )
+    /**
+     * Returns scroll corner provider.
+     *
+     * @return scroll corner provider
+     */
+    @Nullable
+    protected ScrollPaneCornerProvider getScrollCornerProvider ()
     {
-        this.round = round;
-    }
-
-    public int getShadeWidth ()
-    {
-        return shadeWidth;
-    }
-
-    public void setShadeWidth ( final int shadeWidth )
-    {
-        this.shadeWidth = shadeWidth;
-        updateBorder ();
-    }
-
-    public Insets getMargin ()
-    {
-        return margin;
-    }
-
-    public void setMargin ( final Insets margin )
-    {
-        this.margin = margin;
-        updateBorder ();
-    }
-
-    public boolean isDrawFocus ()
-    {
-        return drawFocus;
-    }
-
-    public void setDrawFocus ( final boolean drawFocus )
-    {
-        this.drawFocus = drawFocus;
-    }
-
-    public boolean isDrawBackground ()
-    {
-        return drawBackground;
-    }
-
-    public void setDrawBackground ( final boolean drawBackground )
-    {
-        this.drawBackground = drawBackground;
-    }
-
-    public Color getBorderColor ()
-    {
-        return borderColor;
-    }
-
-    public void setBorderColor ( final Color borderColor )
-    {
-        this.borderColor = borderColor;
-    }
-
-    public Color getDarkBorder ()
-    {
-        return darkBorder;
-    }
-
-    public void setDarkBorder ( final Color darkBorder )
-    {
-        this.darkBorder = darkBorder;
+        ScrollPaneCornerProvider scp = null;
+        if ( scrollpane.getViewport () != null && scrollpane.getViewport ().getView () != null )
+        {
+            final Component view = scrollpane.getViewport ().getView ();
+            if ( view instanceof ScrollPaneCornerProvider )
+            {
+                scp = ( ScrollPaneCornerProvider ) view;
+            }
+            else if ( view instanceof JComponent )
+            {
+                final JComponent jView = ( JComponent ) view;
+                if ( LafUtils.hasUI ( jView ) )
+                {
+                    final ComponentUI ui = LafUtils.getUI ( jView );
+                    if ( ui instanceof ScrollPaneCornerProvider )
+                    {
+                        scp = ( ScrollPaneCornerProvider ) ui;
+                    }
+                }
+            }
+        }
+        return scp;
     }
 
     @Override
-    public void paint ( final Graphics g, final JComponent c )
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
     {
-        if ( drawBorder && !SwingUtils.isPreserveBorders ( scrollpane ))
-        {
-            // Border, background and shade
-            LafUtils.drawWebStyle ( ( Graphics2D ) g, c, drawFocus && focused ? StyleConstants.fieldFocusColor : StyleConstants.shadeColor,
-                    shadeWidth, round, drawBackground, false );
-        }
+        return PainterSupport.contains ( c, this, x, y );
+    }
 
-        super.paint ( g, c );
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return null;
     }
 }

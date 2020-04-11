@@ -18,7 +18,8 @@
 package com.alee.utils.general;
 
 
-import com.alee.utils.ReflectUtils;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 
@@ -27,22 +28,25 @@ import java.io.Serializable;
 /**
  * This class represents single name-value pair.
  *
+ * @param <K> key type
+ * @param <V> value type
  * @author Mikle Garin
  */
-
 @XStreamAlias ( "Pair" )
-public class Pair<K, V> implements Serializable, Cloneable
+public class Pair<K, V> implements Cloneable, Serializable
 {
     /**
      * Key of this {@code Pair}.
      */
     @XStreamAsAttribute
+    @SuppressWarnings ( "NonSerializableFieldInSerializableClass" )
     public K key;
 
     /**
      * Value of this this {@code Pair}.
      */
     @XStreamAsAttribute
+    @SuppressWarnings ( "NonSerializableFieldInSerializableClass" )
     public V value;
 
     /**
@@ -71,7 +75,6 @@ public class Pair<K, V> implements Serializable, Cloneable
      */
     public Pair ( final K key, final V value )
     {
-        super ();
         this.key = key;
         this.value = value;
     }
@@ -116,57 +119,37 @@ public class Pair<K, V> implements Serializable, Cloneable
         this.value = value;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public String toString ()
     {
         return key + "=" + value;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int hashCode ()
     {
-        return key.hashCode () * 13 + ( value == null ? 0 : value.hashCode () );
+        return ( key != null ? key.hashCode () * 13 : 0 ) + ( value != null ? value.hashCode () : 0 );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean equals ( final Object o )
+    public boolean equals ( @Nullable final Object o )
     {
+        final boolean equals;
         if ( this == o )
         {
-            return true;
+            equals = true;
         }
-        if ( o instanceof Pair )
+        else if ( o instanceof Pair )
         {
             final Pair pair = ( Pair ) o;
-            return !( key != null ? !key.equals ( pair.key ) : pair.key != null ) &&
+            equals = !( key != null ? !key.equals ( pair.key ) : pair.key != null ) &&
                     !( value != null ? !value.equals ( pair.value ) : pair.value != null );
-        }
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Pair<K, V> clone ()
-    {
-        if ( getKey () instanceof Cloneable && getValue () instanceof Cloneable )
-        {
-            return ( Pair<K, V> ) new Pair ( ReflectUtils.cloneSafely ( ( Cloneable ) getKey () ),
-                    ReflectUtils.cloneSafely ( ( Cloneable ) getValue () ) );
         }
         else
         {
-            throw new RuntimeException ( "Both key and value should implement Cloneable!" );
+            equals = false;
         }
+        return equals;
     }
 }

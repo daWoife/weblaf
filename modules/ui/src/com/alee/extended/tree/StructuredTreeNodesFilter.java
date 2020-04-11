@@ -17,77 +17,79 @@
 
 package com.alee.extended.tree;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.jdk.Function;
 import com.alee.laf.tree.UniqueNode;
-import com.alee.utils.compare.Filter;
-import com.alee.utils.text.DefaultTextProvider;
-import com.alee.utils.text.TextProvider;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 
 /**
- * Special smart tree filter that doesn't filter out parent nodes which has childs that are accepted by filter.
+ * Special smart tree filter that doesn't filter out parent nodes which has children that are accepted by filter.
  * This can be used in any kind of filter fields to provide a proper visual feedback in tree.
  *
+ * @param <N> {@link UniqueNode} type
  * @author Mikle Garin
  */
-
-public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E>
+public class StructuredTreeNodesFilter<N extends UniqueNode> implements NodesFilter<N>
 {
     /**
-     * Original tree filter.
+     * Accept states by node IDs cache.
      */
-    protected Filter<E> originalFilter;
+    @NotNull
+    protected final Map<String, Boolean> acceptStatesCache;
 
     /**
      * Nodes text provider.
      */
-    protected TextProvider<E> textProvider;
-
-    /**
-     * Accept states by node IDs cache.
-     */
-    protected Map<String, Boolean> acceptStatesCache = new HashMap<String, Boolean> ();
+    @NotNull
+    protected Function<N, String> textProvider;
 
     /**
      * Whether should match case or not.
      */
-    protected boolean matchCase = false;
+    protected boolean matchCase;
 
     /**
      * Whether should use space character as requests separator or not.
      */
-    protected boolean useSpaceAsSeparator = false;
+    protected boolean useSpaceAsSeparator;
 
     /**
      * Whether should search from node text beginning or not.
      */
-    protected boolean searchFromStart = false;
+    protected boolean searchFromStart;
 
     /**
      * Search request text.
      */
-    protected String searchText = "";
+    @NotNull
+    protected String searchText;
 
     /**
-     * Returns original tree filter.
-     *
-     * @return original tree filter
+     * Constructs new {@link StructuredTreeNodesFilter}.
      */
-    public Filter<E> getOriginalFilter ()
+    public StructuredTreeNodesFilter ()
     {
-        return originalFilter;
+        this ( new UniqueNodeTextProvider<N> () );
     }
 
     /**
-     * Sets original tree filter.
+     * Constructs new {@link StructuredTreeNodesFilter}.
      *
-     * @param filter original tree filter
+     * @param textProvider nodes text provider
      */
-    public void setOriginalFilter ( final Filter<E> filter )
+    public StructuredTreeNodesFilter ( @NotNull final Function<N, String> textProvider )
     {
-        this.originalFilter = filter;
+        this.acceptStatesCache = new HashMap<String, Boolean> ();
+        this.textProvider = textProvider;
+        this.matchCase = false;
+        this.useSpaceAsSeparator = false;
+        this.searchFromStart = false;
+        this.searchText = "";
     }
 
     /**
@@ -95,7 +97,8 @@ public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E
      *
      * @return nodes text provider
      */
-    public TextProvider<E> getTextProvider ()
+    @NotNull
+    public Function<N, String> getTextProvider ()
     {
         return textProvider;
     }
@@ -106,9 +109,9 @@ public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E
      *
      * @param textProvider new nodes text provider
      */
-    public void setTextProvider ( final TextProvider<E> textProvider )
+    public void setTextProvider ( @NotNull final Function<N, String> textProvider )
     {
-        this.textProvider = textProvider != null ? textProvider : new DefaultTextProvider ();
+        this.textProvider = textProvider;
     }
 
     /**
@@ -176,6 +179,7 @@ public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E
      *
      * @return search request text
      */
+    @NotNull
     public String getSearchText ()
     {
         return searchText;
@@ -186,74 +190,57 @@ public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E
      *
      * @param searchText search request text
      */
-    public void setSearchText ( final String searchText )
+    public void setSearchText ( @Nullable final String searchText )
     {
-        this.searchText = searchText;
+        this.searchText = searchText != null ? searchText : "";
     }
 
-    /**
-     * Clears accept states cache.
-     */
+    @Override
     public void clearCache ()
     {
         acceptStatesCache.clear ();
     }
 
-    /**
-     * Clears specific node accept state cache.
-     */
-    public void clearCache ( final E node )
-    {
-        clearCache ( node.getId () );
-    }
-
-    /**
-     * Clears specific node accept state cache.
-     */
-    public void clearCache ( final String nodeId )
-    {
-        acceptStatesCache.remove ( nodeId );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean accept ( final E node )
+    public void clearCache ( @NotNull final N node )
     {
-        if ( originalFilter == null || originalFilter.accept ( node ) )
-        {
-            // Structured nodes filtering
-            final String searchRequest = matchCase ? searchText : searchText.toLowerCase ();
-            return searchRequest.equals ( "" ) || acceptIncludingChilds ( node, searchRequest );
-        }
-        else
-        {
-            return false;
-        }
+        acceptStatesCache.remove ( node.getId () );
+    }
+
+    @Override
+    public boolean accept ( @NotNull final N node )
+    {
+        final String searchRequest = matchCase ? searchText : searchText.toLowerCase ( Locale.ROOT );
+        return searchRequest.equals ( "" ) || acceptIncludingChildren ( node, searchRequest );
     }
 
     /**
-     * Returns whether the specified node or any of its childs match the filter or not.
+     * Returns whether the specified node or any of its children match the filter or not.
      *
      * @param node          node to match
      * @param searchRequest search request text
-     * @return true if the specified node or any of its childs match the filter, false otherwise
+     * @return true if the specified node or any of its children match the filter, false otherwise
      */
-    protected boolean acceptIncludingChilds ( final E node, final String searchRequest )
+    protected boolean acceptIncludingChildren ( @NotNull final N node, @NotNull final String searchRequest )
     {
+        boolean accepted;
         if ( acceptNode ( node, searchRequest ) )
         {
-            return true;
+            accepted = true;
         }
-        for ( int i = 0; i < node.getChildCount (); i++ )
+        else
         {
-            if ( acceptIncludingChilds ( ( E ) node.getChildAt ( i ), searchRequest ) )
+            accepted = false;
+            for ( int i = 0; i < node.getChildCount (); i++ )
             {
-                return true;
+                if ( acceptIncludingChildren ( ( N ) node.getChildAt ( i ), searchRequest ) )
+                {
+                    accepted = true;
+                    break;
+                }
             }
         }
-        return false;
+        return accepted;
     }
 
     /**
@@ -264,7 +251,7 @@ public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E
      * @param searchRequest search request text
      * @return true if the specified node matches the filter, false otherwise
      */
-    protected boolean acceptNode ( final E node, final String searchRequest )
+    protected boolean acceptNode ( @NotNull final N node, @NotNull final String searchRequest )
     {
         Boolean accept = acceptStatesCache.get ( node.getId () );
         if ( accept == null )
@@ -282,25 +269,29 @@ public class StructuredTreeNodesFilter<E extends UniqueNode> implements Filter<E
      * @param searchRequest search request text
      * @return true if the specified node matches the filter, false otherwise
      */
-    protected boolean acceptNodeImpl ( final E node, final String searchRequest )
+    protected boolean acceptNodeImpl ( @NotNull final N node, @NotNull final String searchRequest )
     {
-        final String nodeText = matchCase ? textProvider.provide ( node ) : textProvider.provide ( node ).toLowerCase ();
+        boolean accepted;
+        final String rawText = textProvider.apply ( node );
+        final String nodeText = matchCase ? rawText : rawText.toLowerCase ( Locale.ROOT );
         if ( useSpaceAsSeparator )
         {
+            accepted = false;
             final StringTokenizer tokenizer = new StringTokenizer ( searchRequest, " ", false );
             while ( tokenizer.hasMoreTokens () )
             {
                 if ( accept ( nodeText, tokenizer.nextToken (), searchFromStart ) )
                 {
-                    return true;
+                    accepted = true;
+                    break;
                 }
             }
-            return false;
         }
         else
         {
-            return accept ( nodeText, searchRequest, searchFromStart );
+            accepted = accept ( nodeText, searchRequest, searchFromStart );
         }
+        return accepted;
     }
 
     /**

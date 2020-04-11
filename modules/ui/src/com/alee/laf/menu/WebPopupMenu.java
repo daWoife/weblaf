@@ -17,57 +17,107 @@
 
 package com.alee.laf.menu;
 
-import com.alee.laf.WebLookAndFeel;
-import com.alee.managers.language.LanguageContainerMethods;
-import com.alee.managers.language.LanguageManager;
-import com.alee.managers.log.Log;
-import com.alee.managers.style.StyleManager;
-import com.alee.managers.style.skin.web.PopupStyle;
-import com.alee.managers.style.skin.web.WebPopupMenuPainter;
-import com.alee.utils.ReflectUtils;
-import com.alee.utils.SizeUtils;
-import com.alee.utils.laf.ShapeProvider;
-import com.alee.utils.laf.Styleable;
-import com.alee.utils.swing.SizeMethods;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.language.*;
+import com.alee.managers.settings.Configuration;
+import com.alee.managers.settings.SettingsMethods;
+import com.alee.managers.settings.SettingsProcessor;
+import com.alee.managers.settings.UISettingsManager;
+import com.alee.managers.style.*;
+import com.alee.painter.Painter;
+import com.alee.painter.PainterSupport;
+import com.alee.utils.swing.extensions.FontMethods;
+import com.alee.utils.swing.extensions.FontMethodsImpl;
+import com.alee.utils.swing.extensions.SizeMethods;
+import com.alee.utils.swing.extensions.SizeMethodsImpl;
 
 import javax.swing.*;
 import java.awt.*;
+import java.beans.PropertyChangeListener;
 
 /**
- * This JPopupMenu extension class provides a direct access to WebPopupMenuUI methods.
- * It also has a few additional methods to simplify popup window positioning.
+ * {@link JPopupMenu} extension class.
+ * It contains various useful methods to simplify core component usage.
+ *
+ * This component should never be used with a non-Web UIs as it might cause an unexpected behavior.
+ * You could still use that component even if WebLaF is not your application LaF as this component will use Web-UI in any case.
  *
  * @author Mikle Garin
+ * @see JPopupMenu
+ * @see WebPopupMenuUI
+ * @see PopupMenuPainter
  */
-
-public class WebPopupMenu extends JPopupMenu implements Styleable, ShapeProvider, SizeMethods<WebPopupMenu>, LanguageContainerMethods
+public class WebPopupMenu extends JPopupMenu implements Styleable, LanguageMethods, LanguageEventMethods, SettingsMethods,
+        FontMethods<WebPopupMenu>, SizeMethods<WebPopupMenu>
 {
     /**
      * Constructs new popup menu.
      */
     public WebPopupMenu ()
     {
-        super ();
+        this ( StyleId.auto );
     }
 
     /**
-     * Constructs new popup menu with the specified style ID.
+     * Constructs new popup menu with the specified {@link StyleId}.
      *
-     * @param styleId popup menu style ID
+     * @param id {@link StyleId}
      */
-    public WebPopupMenu ( final String styleId )
+    public WebPopupMenu ( final StyleId id )
     {
         super ();
-        setStyleId ( styleId );
+        setStyleId ( id );
     }
 
-    /**
-     * Adds separator into menu.
-     */
+    @Override
+    public JMenuItem add ( final String text )
+    {
+        final WebMenuItem menuItem = new WebMenuItem ( text );
+        return add ( menuItem );
+    }
+
+    @Override
+    public JMenuItem add ( final Action action )
+    {
+        final JMenuItem menuItem = createActionComponent ( action );
+        menuItem.setAction ( action );
+        return add ( menuItem );
+    }
+
+    @Override
+    public void insert ( final Action action, final int index )
+    {
+        final JMenuItem menuItem = createActionComponent ( action );
+        menuItem.setAction ( action );
+        insert ( menuItem, index );
+    }
+
+    @Override
+    protected JMenuItem createActionComponent ( final Action action )
+    {
+        final JMenuItem mi = new WebMenuItem ()
+        {
+            @Override
+            protected PropertyChangeListener createActionPropertyChangeListener ( final Action action )
+            {
+                PropertyChangeListener actionChangeListener = createActionChangeListener ( this );
+                if ( actionChangeListener == null )
+                {
+                    actionChangeListener = super.createActionPropertyChangeListener ( action );
+                }
+                return actionChangeListener;
+            }
+        };
+        mi.setHorizontalTextPosition ( WebMenuItem.TRAILING );
+        mi.setVerticalTextPosition ( WebMenuItem.CENTER );
+        return mi;
+    }
+
     @Override
     public void addSeparator ()
     {
-        add ( new WebPopupMenu.Separator () );
+        add ( new WebPopupMenuSeparator () );
     }
 
     /**
@@ -77,7 +127,7 @@ public class WebPopupMenu extends JPopupMenu implements Styleable, ShapeProvider
      */
     public void addSeparator ( final int index )
     {
-        add ( new WebPopupMenu.Separator (), index );
+        add ( new WebPopupMenuSeparator (), index );
     }
 
     /**
@@ -187,120 +237,6 @@ public class WebPopupMenu extends JPopupMenu implements Styleable, ShapeProvider
     }
 
     /**
-     * Returns popup menu content margin.
-     *
-     * @return popup menu content margin
-     */
-    @Override
-    public Insets getMargin ()
-    {
-        return getWebUI ().getMargin ();
-    }
-
-    /**
-     * Sets popup menu content margin.
-     *
-     * @param margin popup menu content margin
-     * @return this popup menu
-     */
-    public WebPopupMenu setMargin ( final Insets margin )
-    {
-        getWebUI ().setMargin ( margin );
-        return this;
-    }
-
-    /**
-     * Sets popup menu content margin.
-     *
-     * @param top    top popup menu content margin
-     * @param left   left popup menu content margin
-     * @param bottom bottom popup menu content margin
-     * @param right  right popup menu content margin
-     * @return this popup menu
-     */
-    public WebPopupMenu setMargin ( final int top, final int left, final int bottom, final int right )
-    {
-        return setMargin ( new Insets ( top, left, bottom, right ) );
-    }
-
-    /**
-     * Sets popup menu content margin.
-     *
-     * @param spacing popup menu content margin
-     * @return this popup menu
-     */
-    public WebPopupMenu setMargin ( final int spacing )
-    {
-        return setMargin ( spacing, spacing, spacing, spacing );
-    }
-
-    /**
-     * Returns popup menu painter.
-     *
-     * @return popup menu painter
-     */
-    public PopupMenuPainter getPainter ()
-    {
-        return StyleManager.getPainter ( this );
-    }
-
-    /**
-     * Sets popup menu painter.
-     *
-     * @param painter new popup menu painter
-     * @return this popup menu
-     */
-    public WebPopupMenu setPainter ( final WebPopupMenuPainter painter )
-    {
-        StyleManager.setCustomPainter ( this, painter );
-        return this;
-    }
-
-    /**
-     * Returns spacing between menubar popup menus.
-     *
-     * @return spacing between menubar popup menus
-     */
-    public int getMenuSpacing ()
-    {
-        return getWebUI ().getMenuSpacing ();
-    }
-
-    /**
-     * Sets spacing between menubar popup menus.
-     *
-     * @param spacing new spacing between menubar popup menus
-     * @return this popup menu
-     */
-    public WebPopupMenu setMenuSpacing ( final int spacing )
-    {
-        getWebUI ().setMenuSpacing ( spacing );
-        return this;
-    }
-
-    /**
-     * Returns whether popup menu should try to fix its initial location when displayed or not.
-     *
-     * @return true if popup menu should try to fix its initial location when displayed, false otherwise
-     */
-    public boolean isFixLocation ()
-    {
-        return getWebUI ().isFixLocation ();
-    }
-
-    /**
-     * Sets whether popup menu should try to fix its initial location when displayed or not.
-     *
-     * @param fixLocation whether popup menu should try to fix its initial location when displayed or not
-     * @return this popup menu
-     */
-    public WebPopupMenu setFixLocation ( final boolean fixLocation )
-    {
-        getWebUI ().setFixLocation ( fixLocation );
-        return this;
-    }
-
-    /**
      * Assists popup menu to allow it choose the best position relative to invoker.
      * Its value nullified right after first usage to avoid popup menu display issues in future.
      *
@@ -309,395 +245,561 @@ public class WebPopupMenu extends JPopupMenu implements Styleable, ShapeProvider
      */
     public WebPopupMenu setPopupMenuWay ( final PopupMenuWay way )
     {
-        getWebUI ().setPopupMenuWay ( way );
+        getUI ().setPopupMenuWay ( way );
         return this;
     }
 
-    /**
-     * Returns popup style.
-     *
-     * @return popup style
-     */
-    public PopupStyle getPopupStyle ()
-    {
-        return getWebUI ().getPopupStyle ();
-    }
-
-    /**
-     * Sets popup style.
-     *
-     * @param style new popup style
-     * @return this popup menu
-     */
-    public WebPopupMenu setPopupStyle ( final PopupStyle style )
-    {
-        getWebUI ().setPopupStyle ( style );
-        return this;
-    }
-
-    /**
-     * Returns popup border color.
-     *
-     * @return popup border color
-     */
-    public Color getBorderColor ()
-    {
-        return getWebUI ().getBorderColor ();
-    }
-
-    /**
-     * Sets popup border color.
-     *
-     * @param color new popup border color
-     * @return this popup menu
-     */
-    public WebPopupMenu setBorderColor ( final Color color )
-    {
-        getWebUI ().setBorderColor ( color );
-        return this;
-    }
-
-    /**
-     * Returns decoration corners rounding.
-     *
-     * @return decoration corners rounding
-     */
-    public int getRound ()
-    {
-        return getWebUI ().getRound ();
-    }
-
-    /**
-     * Sets decoration corners rounding.
-     *
-     * @param round decoration corners rounding
-     * @return this popup menu
-     */
-    public WebPopupMenu setRound ( final int round )
-    {
-        getWebUI ().setRound ( round );
-        return this;
-    }
-
-    /**
-     * Returns decoration shade width.
-     *
-     * @return decoration shade width
-     */
-    public int getShadeWidth ()
-    {
-        return getWebUI ().getShadeWidth ();
-    }
-
-    /**
-     * Sets decoration shade width.
-     *
-     * @param shadeWidth decoration shade width
-     * @return this popup menu
-     */
-    public WebPopupMenu setShadeWidth ( final int shadeWidth )
-    {
-        getWebUI ().setShadeWidth ( shadeWidth );
-        return this;
-    }
-
-    /**
-     * Returns popup shade transparency.
-     *
-     * @return popup shade transparency
-     */
-    public float getShadeTransparency ()
-    {
-        return getWebUI ().getShadeTransparency ();
-    }
-
-    /**
-     * Sets popup shade transparency.
-     *
-     * @param opacity new popup shade transparency
-     * @return this popup menu
-     */
-    public WebPopupMenu setShadeTransparency ( final float opacity )
-    {
-        getWebUI ().setShadeTransparency ( opacity );
-        return this;
-    }
-
-    /**
-     * Returns popup dropdown style corner width.
-     *
-     * @return popup dropdown style corner width
-     */
-    public int getCornerWidth ()
-    {
-        return getWebUI ().getCornerWidth ();
-    }
-
-    /**
-     * Sets popup dropdown style corner width.
-     *
-     * @param width popup dropdown style corner width
-     * @return this popup menu
-     */
-    public WebPopupMenu setCornerWidth ( final int width )
-    {
-        getWebUI ().setCornerWidth ( width );
-        return this;
-    }
-
-    /**
-     * Returns dropdown corner alignment.
-     *
-     * @return dropdown corner alignment
-     */
-    public int getCornerAlignment ()
-    {
-        return getWebUI ().getCornerAlignment ();
-    }
-
-    /**
-     * Sets dropdown corner alignment.
-     *
-     * @param cornerAlignment dropdown corner alignment
-     */
-    public void setCornerAlignment ( final int cornerAlignment )
-    {
-        StyleManager.setCustomPainterProperty ( this, "cornerAlignment", cornerAlignment );
-    }
-
-    /**
-     * Returns popup background transparency.
-     *
-     * @return popup background transparency
-     */
-    public float getTransparency ()
-    {
-        return getWebUI ().getTransparency ();
-    }
-
-    /**
-     * Sets popup background transparency.
-     *
-     * @param transparency popup background transparency
-     * @return this popup menu
-     */
-    public WebPopupMenu setTransparency ( final float transparency )
-    {
-        getWebUI ().setTransparency ( transparency );
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public String getStyleId ()
+    public StyleId getDefaultStyleId ()
     {
-        return getWebUI ().getStyleId ();
+        return StyleId.popupmenu;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public void setStyleId ( final String id )
+    public StyleId getStyleId ()
     {
-        getWebUI ().setStyleId ( id );
+        return StyleManager.getStyleId ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public Shape provideShape ()
+    public StyleId setStyleId ( @NotNull final StyleId id )
     {
-        return getWebUI ().provideShape ();
+        return StyleManager.setStyleId ( this, id );
     }
 
-    /**
-     * Returns Web-UI applied to this class.
-     *
-     * @return Web-UI applied to this class
-     */
-    public WebPopupMenuUI getWebUI ()
-    {
-        return ( WebPopupMenuUI ) getUI ();
-    }
-
-    /**
-     * Installs a Web-UI into this component.
-     */
+    @NotNull
     @Override
-    public void updateUI ()
+    public StyleId resetStyleId ()
     {
-        if ( getUI () == null || !( getUI () instanceof WebPopupMenuUI ) )
-        {
-            try
-            {
-                setUI ( ( WebPopupMenuUI ) ReflectUtils.createInstance ( WebLookAndFeel.popupMenuUI ) );
-            }
-            catch ( final Throwable e )
-            {
-                Log.error ( this, e );
-                setUI ( new WebPopupMenuUI () );
-            }
-        }
-        else
-        {
-            setUI ( getUI () );
-        }
+        return StyleManager.resetStyleId ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
+    @Override
+    public Skin getSkin ()
+    {
+        return StyleManager.getSkin ( this );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin )
+    {
+        return StyleManager.setSkin ( this, skin );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin, final boolean recursively )
+    {
+        return StyleManager.setSkin ( this, skin, recursively );
+    }
+
+    @Nullable
+    @Override
+    public Skin resetSkin ()
+    {
+        return StyleManager.resetSkin ( this );
+    }
+
+    @Override
+    public void addStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.addStyleListener ( this, listener );
+    }
+
+    @Override
+    public void removeStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.removeStyleListener ( this, listener );
+    }
+
+    @Nullable
+    @Override
+    public Painter getCustomPainter ()
+    {
+        return StyleManager.getCustomPainter ( this );
+    }
+
+    @Nullable
+    @Override
+    public Painter setCustomPainter ( @NotNull final Painter painter )
+    {
+        return StyleManager.setCustomPainter ( this, painter );
+    }
+
+    @Override
+    public boolean resetCustomPainter ()
+    {
+        return StyleManager.resetCustomPainter ( this );
+    }
+
+    @NotNull
+    @Override
+    public Shape getPainterShape ()
+    {
+        return PainterSupport.getShape ( this );
+    }
+
+    @Override
+    public boolean isShapeDetectionEnabled ()
+    {
+        return PainterSupport.isShapeDetectionEnabled ( this );
+    }
+
+    @Override
+    public void setShapeDetectionEnabled ( final boolean enabled )
+    {
+        PainterSupport.setShapeDetectionEnabled ( this, enabled );
+    }
+
+    @Nullable
+    @Override
+    public Insets getMargin ()
+    {
+        return PainterSupport.getMargin ( this );
+    }
+
+    @Override
+    public void setMargin ( final int margin )
+    {
+        PainterSupport.setMargin ( this, margin );
+    }
+
+    @Override
+    public void setMargin ( final int top, final int left, final int bottom, final int right )
+    {
+        PainterSupport.setMargin ( this, top, left, bottom, right );
+    }
+
+    @Override
+    public void setMargin ( @Nullable final Insets margin )
+    {
+        PainterSupport.setMargin ( this, margin );
+    }
+
+    @Nullable
+    @Override
+    public Insets getPadding ()
+    {
+        return PainterSupport.getPadding ( this );
+    }
+
+    @Override
+    public void setPadding ( final int padding )
+    {
+        PainterSupport.setPadding ( this, padding );
+    }
+
+    @Override
+    public void setPadding ( final int top, final int left, final int bottom, final int right )
+    {
+        PainterSupport.setPadding ( this, top, left, bottom, right );
+    }
+
+    @Override
+    public void setPadding ( @Nullable final Insets padding )
+    {
+        PainterSupport.setPadding ( this, padding );
+    }
+
+    @Nullable
+    @Override
+    public String getLanguage ()
+    {
+        return UILanguageManager.getComponentKey ( this );
+    }
+
+    @Override
+    public void setLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.registerComponent ( this, key, data );
+    }
+
+    @Override
+    public void updateLanguage ( @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, data );
+    }
+
+    @Override
+    public void updateLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, key, data );
+    }
+
+    @Override
+    public void removeLanguage ()
+    {
+        UILanguageManager.unregisterComponent ( this );
+    }
+
+    @Override
+    public boolean isLanguageSet ()
+    {
+        return UILanguageManager.isRegisteredComponent ( this );
+    }
+
+    @Override
+    public void setLanguageUpdater ( @NotNull final LanguageUpdater updater )
+    {
+        UILanguageManager.registerLanguageUpdater ( this, updater );
+    }
+
+    @Override
+    public void removeLanguageUpdater ()
+    {
+        UILanguageManager.unregisterLanguageUpdater ( this );
+    }
+
+    @Override
+    public void addLanguageListener ( @NotNull final LanguageListener listener )
+    {
+        UILanguageManager.addLanguageListener ( this, listener );
+    }
+
+    @Override
+    public void removeLanguageListener ( @NotNull final LanguageListener listener )
+    {
+        UILanguageManager.removeLanguageListener ( this, listener );
+    }
+
+    @Override
+    public void removeLanguageListeners ()
+    {
+        UILanguageManager.removeLanguageListeners ( this );
+    }
+
+    @Override
+    public void addDictionaryListener ( @NotNull final DictionaryListener listener )
+    {
+        UILanguageManager.addDictionaryListener ( this, listener );
+    }
+
+    @Override
+    public void removeDictionaryListener ( @NotNull final DictionaryListener listener )
+    {
+        UILanguageManager.removeDictionaryListener ( this, listener );
+    }
+
+    @Override
+    public void removeDictionaryListeners ()
+    {
+        UILanguageManager.removeDictionaryListeners ( this );
+    }
+
+    @Override
+    public void registerSettings ( final Configuration configuration )
+    {
+        UISettingsManager.registerComponent ( this, configuration );
+    }
+
+    @Override
+    public void registerSettings ( final SettingsProcessor processor )
+    {
+        UISettingsManager.registerComponent ( this, processor );
+    }
+
+    @Override
+    public void unregisterSettings ()
+    {
+        UISettingsManager.unregisterComponent ( this );
+    }
+
+    @Override
+    public void loadSettings ()
+    {
+        UISettingsManager.loadSettings ( this );
+    }
+
+    @Override
+    public void saveSettings ()
+    {
+        UISettingsManager.saveSettings ( this );
+    }
+
+    @Override
+    public WebPopupMenu setPlainFont ()
+    {
+        return FontMethodsImpl.setPlainFont ( this );
+    }
+
+    @Override
+    public WebPopupMenu setPlainFont ( final boolean apply )
+    {
+        return FontMethodsImpl.setPlainFont ( this, apply );
+    }
+
+    @Override
+    public boolean isPlainFont ()
+    {
+        return FontMethodsImpl.isPlainFont ( this );
+    }
+
+    @Override
+    public WebPopupMenu setBoldFont ()
+    {
+        return FontMethodsImpl.setBoldFont ( this );
+    }
+
+    @Override
+    public WebPopupMenu setBoldFont ( final boolean apply )
+    {
+        return FontMethodsImpl.setBoldFont ( this, apply );
+    }
+
+    @Override
+    public boolean isBoldFont ()
+    {
+        return FontMethodsImpl.isBoldFont ( this );
+    }
+
+    @Override
+    public WebPopupMenu setItalicFont ()
+    {
+        return FontMethodsImpl.setItalicFont ( this );
+    }
+
+    @Override
+    public WebPopupMenu setItalicFont ( final boolean apply )
+    {
+        return FontMethodsImpl.setItalicFont ( this, apply );
+    }
+
+    @Override
+    public boolean isItalicFont ()
+    {
+        return FontMethodsImpl.isItalicFont ( this );
+    }
+
+    @Override
+    public WebPopupMenu setFontStyle ( final boolean bold, final boolean italic )
+    {
+        return FontMethodsImpl.setFontStyle ( this, bold, italic );
+    }
+
+    @Override
+    public WebPopupMenu setFontStyle ( final int style )
+    {
+        return FontMethodsImpl.setFontStyle ( this, style );
+    }
+
+    @Override
+    public WebPopupMenu setFontSize ( final int fontSize )
+    {
+        return FontMethodsImpl.setFontSize ( this, fontSize );
+    }
+
+    @Override
+    public WebPopupMenu changeFontSize ( final int change )
+    {
+        return FontMethodsImpl.changeFontSize ( this, change );
+    }
+
+    @Override
+    public int getFontSize ()
+    {
+        return FontMethodsImpl.getFontSize ( this );
+    }
+
+    @Override
+    public WebPopupMenu setFontSizeAndStyle ( final int fontSize, final boolean bold, final boolean italic )
+    {
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, bold, italic );
+    }
+
+    @Override
+    public WebPopupMenu setFontSizeAndStyle ( final int fontSize, final int style )
+    {
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, style );
+    }
+
+    @Override
+    public WebPopupMenu setFontName ( final String fontName )
+    {
+        return FontMethodsImpl.setFontName ( this, fontName );
+    }
+
+    @Override
+    public String getFontName ()
+    {
+        return FontMethodsImpl.getFontName ( this );
+    }
+
     @Override
     public int getPreferredWidth ()
     {
-        return SizeUtils.getPreferredWidth ( this );
+        return SizeMethodsImpl.getPreferredWidth ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public WebPopupMenu setPreferredWidth ( final int preferredWidth )
     {
-        return SizeUtils.setPreferredWidth ( this, preferredWidth );
+        return SizeMethodsImpl.setPreferredWidth ( this, preferredWidth );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getPreferredHeight ()
     {
-        return SizeUtils.getPreferredHeight ( this );
+        return SizeMethodsImpl.getPreferredHeight ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public WebPopupMenu setPreferredHeight ( final int preferredHeight )
     {
-        return SizeUtils.setPreferredHeight ( this, preferredHeight );
+        return SizeMethodsImpl.setPreferredHeight ( this, preferredHeight );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMinimumWidth ()
-    {
-        return SizeUtils.getMinimumWidth ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebPopupMenu setMinimumWidth ( final int minimumWidth )
-    {
-        return SizeUtils.setMinimumWidth ( this, minimumWidth );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMinimumHeight ()
-    {
-        return SizeUtils.getMinimumHeight ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebPopupMenu setMinimumHeight ( final int minimumHeight )
-    {
-        return SizeUtils.setMinimumHeight ( this, minimumHeight );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMaximumWidth ()
-    {
-        return SizeUtils.getMaximumWidth ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebPopupMenu setMaximumWidth ( final int maximumWidth )
-    {
-        return SizeUtils.setMaximumWidth ( this, maximumWidth );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMaximumHeight ()
-    {
-        return SizeUtils.getMaximumHeight ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebPopupMenu setMaximumHeight ( final int maximumHeight )
-    {
-        return SizeUtils.setMaximumHeight ( this, maximumHeight );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public Dimension getPreferredSize ()
     {
-        return SizeUtils.getPreferredSize ( this, super.getPreferredSize () );
+        return SizeMethodsImpl.getPreferredSize ( this, super.getPreferredSize () );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
+    @Override
+    public Dimension getOriginalPreferredSize ()
+    {
+        return SizeMethodsImpl.getOriginalPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
     @Override
     public WebPopupMenu setPreferredSize ( final int width, final int height )
     {
-        return SizeUtils.setPreferredSize ( this, width, height );
+        return SizeMethodsImpl.setPreferredSize ( this, width, height );
+    }
+
+    @Override
+    public int getMaximumWidth ()
+    {
+        return SizeMethodsImpl.getMaximumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebPopupMenu setMaximumWidth ( final int maximumWidth )
+    {
+        return SizeMethodsImpl.setMaximumWidth ( this, maximumWidth );
+    }
+
+    @Override
+    public int getMaximumHeight ()
+    {
+        return SizeMethodsImpl.getMaximumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebPopupMenu setMaximumHeight ( final int maximumHeight )
+    {
+        return SizeMethodsImpl.setMaximumHeight ( this, maximumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMaximumSize ()
+    {
+        return SizeMethodsImpl.getMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMaximumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebPopupMenu setMaximumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMaximumSize ( this, width, height );
+    }
+
+    @Override
+    public int getMinimumWidth ()
+    {
+        return SizeMethodsImpl.getMinimumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebPopupMenu setMinimumWidth ( final int minimumWidth )
+    {
+        return SizeMethodsImpl.setMinimumWidth ( this, minimumWidth );
+    }
+
+    @Override
+    public int getMinimumHeight ()
+    {
+        return SizeMethodsImpl.getMinimumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebPopupMenu setMinimumHeight ( final int minimumHeight )
+    {
+        return SizeMethodsImpl.setMinimumHeight ( this, minimumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMinimumSize ()
+    {
+        return SizeMethodsImpl.getMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMinimumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebPopupMenu setMinimumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMinimumSize ( this, width, height );
     }
 
     /**
-     * {@inheritDoc}
+     * Returns the look and feel (LaF) object that renders this component.
+     *
+     * @return the {@link WPopupMenuUI} object that renders this component
      */
     @Override
-    public void setLanguageContainerKey ( final String key )
+    public WPopupMenuUI getUI ()
     {
-        LanguageManager.registerLanguageContainer ( this, key );
+        return ( WPopupMenuUI ) super.getUI ();
     }
 
     /**
-     * {@inheritDoc}
+     * Sets the LaF object that renders this component.
+     *
+     * @param ui {@link WPopupMenuUI}
      */
-    @Override
-    public void removeLanguageContainerKey ()
+    public void setUI ( final WPopupMenuUI ui )
     {
-        LanguageManager.unregisterLanguageContainer ( this );
+        super.setUI ( ui );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public String getLanguageContainerKey ()
+    public void updateUI ()
     {
-        return LanguageManager.getLanguageContainerKey ( this );
+        StyleManager.getDescriptor ( this ).updateUI ( this );
+    }
+
+    @Override
+    public String getUIClassID ()
+    {
+        return StyleManager.getDescriptor ( this ).getUIClassId ();
     }
 }

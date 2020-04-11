@@ -17,126 +17,85 @@
 
 package com.alee.laf.menu;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
+
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
+import javax.swing.plaf.basic.BasicRadioButtonMenuItemUI;
 import java.awt.*;
 
 /**
- * Custom UI for JRadioButtonMenuItem component.
+ * Custom UI for {@link JRadioButtonMenuItem} component.
  *
  * @author Mikle Garin
  */
-
-public class WebRadioButtonMenuItemUI extends WebMenuItemUI
+public class WebRadioButtonMenuItemUI extends BasicRadioButtonMenuItemUI
 {
     /**
-     * Used icons.
-     */
-    protected static final ImageIcon radioIcon = new ImageIcon ( WebRadioButtonMenuItemUI.class.getResource ( "icons/radio.png" ) );
-    protected static final ImageIcon radioCheckIcon =
-            new ImageIcon ( WebRadioButtonMenuItemUI.class.getResource ( "icons/radioCheck.png" ) );
-
-    /**
-     * Style settings.
-     */
-    protected Color checkColor = WebMenuItemStyle.checkColor;
-
-    /**
-     * Returns an instance of the WebRadioButtonMenuItemUI for the specified component.
-     * This tricky method is used by UIManager to create component UIs when needed.
+     * Returns an instance of the {@link WebRadioButtonMenuItemUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
      *
      * @param c component that will use UI instance
-     * @return instance of the WebRadioButtonMenuItemUI
+     * @return instance of the {@link WebRadioButtonMenuItemUI}
      */
-    @SuppressWarnings ("UnusedParameters")
-    public static ComponentUI createUI ( final JComponent c )
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebRadioButtonMenuItemUI ();
     }
 
-    /**
-     * Returns property prefix for this specific UI.
-     *
-     * @return property prefix for this specific UI
-     */
     @Override
-    protected String getPropertyPrefix ()
+    public void installUI ( @NotNull final JComponent c )
     {
-        return "RadioButtonMenuItem";
+        // Installing UI
+        super.installUI ( c );
+
+        // Applying skin
+        StyleManager.installSkin ( menuItem );
     }
 
-    /**
-     * Returns radiobutton menu item check color.
-     *
-     * @return radiobutton menu item check color
-     */
-    public Color getCheckColor ()
-    {
-        return checkColor;
-    }
-
-    /**
-     * Sets radiobutton menu item check color.
-     *
-     * @param color radiobutton menu item check color
-     */
-    public void setCheckColor ( final Color color )
-    {
-        this.checkColor = color;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Paint getNorthCornerFill ()
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        final boolean selected = menuItem.isEnabled () && menuItem.getModel ().isArmed ();
-        return !selected && menuItem.isSelected () ? checkColor : super.getNorthCornerFill ();
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( menuItem );
+
+        // Uninstalling UI
+        super.uninstallUI ( c );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Paint getSouthCornerFill ()
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
     {
-        final boolean selected = menuItem.isEnabled () && menuItem.getModel ().isArmed ();
-        return !selected && menuItem.isSelected () ? checkColor : super.getSouthCornerFill ();
+        return PainterSupport.contains ( c, this, x, y );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    protected void paintBackground ( final Graphics2D g2d, final JMenuItem menuItem, final int x, final int y, final int w, final int h,
-                                     final boolean selected, final boolean ltr )
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
     {
-        super.paintBackground ( g2d, menuItem, x, y, w, h, selected, ltr );
-
-        // Painting check selection
-        if ( painter == null && !selected && menuItem.isSelected () && checkColor != null )
-        {
-            g2d.setPaint ( checkColor );
-            g2d.fillRect ( 0, 0, menuItem.getWidth (), menuItem.getHeight () );
-        }
+        return PainterSupport.getBaseline ( c, this, width, height );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    protected void paintIcon ( final Graphics2D g2d, final JMenuItem menuItem, final int x, final int y, final int w, final int h,
-                               final boolean selected, final boolean ltr )
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
     {
-        super.paintIcon ( g2d, menuItem, x, y, w, h, selected, ltr );
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
 
-        // Painting check icon
-        if ( menuItem.getIcon () == null )
-        {
-            final int ix = x + w / 2 - radioIcon.getIconWidth () / 2;
-            final int iy = y + h / 2 - radioIcon.getIconHeight () / 2;
-            g2d.drawImage ( menuItem.isSelected () ? radioCheckIcon.getImage () : radioIcon.getImage (), ix, iy, null );
-        }
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getPreferredSize ( c );
     }
 }

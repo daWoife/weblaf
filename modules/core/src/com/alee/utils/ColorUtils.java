@@ -17,7 +17,10 @@
 
 package com.alee.utils;
 
+import com.alee.api.annotations.NotNull;
+
 import java.awt.*;
+import java.util.Locale;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -26,64 +29,155 @@ import java.util.StringTokenizer;
  *
  * @author Mikle Garin
  */
-
 public final class ColorUtils
 {
     /**
-     * Returns color with alpha value set to 255.
-     *
-     * @param color color to modify
-     * @return color with alpha value set to 255
+     * Fully transparent white color.
      */
-    public static Color removeAlpha ( final Color color )
+    private static final Color TRANSPARENT_COLOR = new Color ( 255, 255, 255, 0 );
+
+    /**
+     * Private constructor to avoid instantiation.
+     */
+    private ColorUtils ()
     {
-        if ( color.getAlpha () != 255 )
-        {
-            return new Color ( color.getRGB (), false );
-        }
-        else
-        {
-            return color;
-        }
+        throw new UtilityException ( "Utility classes are not meant to be instantiated" );
     }
 
     /**
-     * Returns color with modified alpha value.
+     * Returns fully transparent white {@link Color}.
      *
-     * @param color color to process
-     * @param alpha new alpha value
-     * @return color with modified alpha value
+     * @return fully transparent white {@link Color}
      */
-    public static Color getTransparentColor ( final Color color, final int alpha )
+    @NotNull
+    public static Color transparent ()
+    {
+        return TRANSPARENT_COLOR;
+    }
+
+    /**
+     * Returns grayscale version of the specified {@link Color}.
+     *
+     * @param color {@link Color} to make grayscale version of
+     * @return grayscale version of the specified {@link Color}
+     */
+    @NotNull
+    public static Color grayscale ( @NotNull final Color color )
+    {
+        final int avg = ( int ) ( color.getRed () * 0.299 + color.getGreen () * 0.587 + color.getBlue () * 0.114 );
+        return new Color ( avg, avg, avg, color.getAlpha () );
+    }
+
+    /**
+     * Returns {@link Color} with modified alpha value.
+     *
+     * @param color {@link Color} to convert
+     * @param alpha new alpha value
+     * @return {@link Color} with modified alpha value
+     */
+    @NotNull
+    public static Color transparent ( @NotNull final Color color, final int alpha )
     {
         return new Color ( color.getRed (), color.getGreen (), color.getBlue (), alpha );
     }
 
     /**
-     * Returns intermediate color between two specified colors.
+     * Returns {@link Color} with alpha value set to 255.
      *
-     * @param color1   first color
-     * @param color2   second color
-     * @param progress progress of the intermediate color
-     * @return intermediate color between two specified colors
+     * @param color {@link Color} to convert
+     * @return {@link Color} with alpha value set to 255
      */
-    public static Color getIntermediateColor ( final Color color1, final Color color2, final float progress )
+    @NotNull
+    public static Color opaque ( @NotNull final Color color )
     {
-        if ( progress <= 0f )
+        return color.getAlpha () != 255 ? transparent ( color, 255 ) : color;
+    }
+
+    /**
+     * Returns web-safe {@link Color}.
+     *
+     * @param color {@link Color} to convert
+     * @return web-safe {@link Color}
+     */
+    @NotNull
+    public static Color webSafe ( @NotNull final Color color )
+    {
+        return new Color (
+                webSafe ( color.getRed () ),
+                webSafe ( color.getGreen () ),
+                webSafe ( color.getBlue () ),
+                webSafe ( color.getAlpha () )
+        );
+    }
+
+    /**
+     * Returns web-safe color value.
+     * todo This is still not completely correct
+     * todo Color values should approximate relatively to other values
+     *
+     * @param value value to process
+     * @return web-safe color value
+     */
+    public static int webSafe ( final int value )
+    {
+        final int webSafe;
+        if ( 0 <= value && value <= 51 )
         {
-            return color1;
+            webSafe = value > 51 - value ? 51 : 0;
         }
-        else if ( progress >= 1f )
+        else if ( 51 < value && value <= 102 )
         {
-            return color2;
+            webSafe = value - 51 > 102 - value ? 102 : 51;
+        }
+        else if ( 102 < value && value <= 153 )
+        {
+            webSafe = value - 102 > 153 - value ? 153 : 102;
+        }
+        else if ( 153 < value && value <= 204 )
+        {
+            webSafe = value - 153 > 204 - value ? 204 : 153;
+        }
+        else if ( 204 < value && value <= 255 )
+        {
+            webSafe = value - 204 > 255 - value ? 255 : 204;
         }
         else
         {
-            return new Color ( getIntermediateValue ( color1.getRed (), color2.getRed (), progress ),
-                    getIntermediateValue ( color1.getGreen (), color2.getGreen (), progress ),
-                    getIntermediateValue ( color1.getBlue (), color2.getBlue (), progress ),
-                    getIntermediateValue ( color1.getAlpha (), color2.getAlpha (), progress ) );
+            webSafe = value;
         }
+        return webSafe;
+    }
+
+    /**
+     * Returns intermediate {@link Color} between two specified {@link Color}s.
+     *
+     * @param color1   first {@link Color}
+     * @param color2   second {@link Color}
+     * @param progress progress of the intermediate {@link Color}
+     * @return intermediate {@link Color} between two specified {@link Color}s
+     */
+    @NotNull
+    public static Color intermediate ( @NotNull final Color color1, @NotNull final Color color2, final float progress )
+    {
+        final Color intermediate;
+        if ( progress <= 0f )
+        {
+            intermediate = color1;
+        }
+        else if ( progress >= 1f )
+        {
+            intermediate = color2;
+        }
+        else
+        {
+            intermediate = new Color (
+                    intermediate ( color1.getRed (), color2.getRed (), progress ),
+                    intermediate ( color1.getGreen (), color2.getGreen (), progress ),
+                    intermediate ( color1.getBlue (), color2.getBlue (), progress ),
+                    intermediate ( color1.getAlpha (), color2.getAlpha (), progress )
+            );
+        }
+        return intermediate;
     }
 
     /**
@@ -94,82 +188,42 @@ public final class ColorUtils
      * @param progress progress of the intermediate value
      * @return intermediate value between two specified values
      */
-    public static int getIntermediateValue ( final int value1, final int value2, final float progress )
+    private static int intermediate ( final int value1, final int value2, final float progress )
     {
         return value1 + Math.round ( ( ( float ) value2 - value1 ) * progress );
     }
 
     /**
-     * Returns web-safe color.
+     * Returns hex string for the specified {@link Color}.
      *
-     * @param color color to process
-     * @return web-safe color
+     * @param color {@link Color} to convert
+     * @return hex string for the specified {@link Color}
      */
-    public static Color getWebSafeColor ( final Color color )
+    @NotNull
+    public static String toHex ( @NotNull final Color color )
     {
-        return new Color ( getWebSafeValue ( color.getRed () ), getWebSafeValue ( color.getGreen () ),
-                getWebSafeValue ( color.getBlue () ) );
+        final StringBuilder hex = new StringBuilder ( "#" );
+        hex.append ( toHexValue ( color.getRed () ) );
+        hex.append ( toHexValue ( color.getGreen () ) );
+        hex.append ( toHexValue ( color.getBlue () ) );
+        if ( color.getAlpha () < 255 )
+        {
+            hex.append ( toHexValue ( color.getAlpha () ) );
+        }
+        return hex.toString ().toUpperCase ( Locale.ROOT );
     }
 
     /**
-     * Returns web-safe color value.
+     * Returns hex {@link String} for the specified int value.
      *
-     * @param value value to process
-     * @return web-safe color value
+     * @param value int value
+     * @return hex {@link String} for the specified int value
      */
-    public static int getWebSafeValue ( final int value )
+    @NotNull
+    private static String toHexValue ( final int value )
     {
-        if ( 0 <= value && value <= 51 )
-        {
-            return value > 51 - value ? 51 : 0;
-        }
-        else if ( 51 <= value && value <= 102 )
-        {
-            return 51 + value > 102 - value ? 102 : 51;
-        }
-        else if ( 102 <= value && value <= 153 )
-        {
-            return 102 + value > 153 - value ? 153 : 102;
-        }
-        else if ( 153 <= value && value <= 204 )
-        {
-            return 153 + value > 204 - value ? 204 : 153;
-        }
-        else if ( 204 <= value && value <= 255 )
-        {
-            return 204 + value > 255 - value ? 255 : 204;
-        }
-        return value;
-    }
-
-    /**
-     * Returns hex color string for the specified color.
-     *
-     * @param color color to process
-     * @return hex color string for the specified color
-     */
-    public static String getHexColor ( final Color color )
-    {
-        return getHexColor ( color.getRGB () );
-    }
-
-    /**
-     * Returns hex color string for the specified rgb value.
-     *
-     * @param rgb rgb value
-     * @return hex color string for the specified rgb value
-     */
-    public static String getHexColor ( final int rgb )
-    {
-        if ( rgb == 0 )
-        {
-            return "#000000";
-        }
-        else
-        {
-            final String hex = Integer.toHexString ( rgb ).toUpperCase ();
-            return "#" + hex.substring ( 2, hex.length () );
-        }
+        final String hex = Integer.toHexString ( value );
+        return hex.length () == 1 ? "0" + hex : hex;
     }
 
     /**
@@ -178,91 +232,120 @@ public final class ColorUtils
      * @param hex hex color string
      * @return color decoded from a hex color string
      */
-    public static Color parseHexColor ( String hex )
+    @NotNull
+    public static Color fromHex ( @NotNull final String hex )
     {
-        hex = hex.replaceAll ( " ", "" );
-        return Color.decode ( hex.startsWith ( "#" ) ? hex : ( "#" + hex ) );
+        final int offset = hex.startsWith ( "#" ) ? 1 : 0;
+        final int red = fromHexValue ( hex.substring ( offset, offset + 2 ) );
+        final int green = fromHexValue ( hex.substring ( offset + 2, offset + 4 ) );
+        final int blue = fromHexValue ( hex.substring ( offset + 4, offset + 6 ) );
+        final int alpha = hex.length () > 7 ? fromHexValue ( hex.substring ( offset + 6, offset + 8 ) ) : 255;
+        return new Color ( red, green, blue, alpha );
     }
 
     /**
-     * Returns color decoded from an rgb color string.
+     * Returns int value for the specified hex {@link String}.
      *
-     * @param rgb rgb color string
-     * @return color decoded from an rgb color string
+     * @param hex hex {@link String}
+     * @return int value for the specified hex {@link String}
      */
-    public static Color parseRgbColor ( final String rgb )
+    private static int fromHexValue ( @NotNull final String hex )
     {
-        return parseRgbColor ( rgb, "," );
+        return Integer.valueOf ( hex, 16 );
     }
 
     /**
-     * Returns color decoded from an rgb color string.
+     * Returns RGBA color string for the specified {@link Color}.
      *
-     * @param rgb       rgb color string
-     * @param separator color parts separator
-     * @return color decoded from an rgb color string
+     * @param color {@link Color} to convert
+     * @return RGBA color string for the specified {@link Color}
      */
-    public static Color parseRgbColor ( String rgb, final String separator )
+    @NotNull
+    public static String toRGBA ( @NotNull final Color color )
     {
-        rgb = rgb.replaceAll ( " ", "" );
-        final StringTokenizer st = new StringTokenizer ( rgb, separator, false );
+        return toRGBA ( color, "," );
+    }
+
+    /**
+     * Returns RGBA color string for the specified {@link Color}.
+     *
+     * @param color     {@link Color} to convert
+     * @param separator color values separator
+     * @return RGBA color string for the specified {@link Color}
+     */
+    @NotNull
+    public static String toRGBA ( @NotNull final Color color, @NotNull final String separator )
+    {
+        return color.getRed () +
+                separator + color.getGreen () +
+                separator + color.getBlue () +
+                ( color.getAlpha () < 255 ? separator + color.getAlpha () : "" );
+    }
+
+    /**
+     * Returns {@link Color} decoded from RGBA color string.
+     *
+     * @param rgba RGBA color string
+     * @return {@link Color} decoded from RGBA color string
+     */
+    @NotNull
+    public static Color fromRGBA ( @NotNull final String rgba )
+    {
+        return fromRGBA ( rgba, "," );
+    }
+
+    /**
+     * Returns {@link Color} decoded from RGBA color string.
+     *
+     * @param rgba      RGBA color string
+     * @param separator color values separator
+     * @return {@link Color} decoded from RGBA color string
+     */
+    @NotNull
+    public static Color fromRGBA ( @NotNull final String rgba, @NotNull final String separator )
+    {
+        final Color color;
+        final String clean = TextUtils.removeSpacings ( rgba );
+        final StringTokenizer st = new StringTokenizer ( clean, separator, false );
         final int count = st.countTokens ();
         if ( count == 3 )
         {
-            return new Color ( Integer.parseInt ( st.nextToken () ), Integer.parseInt ( st.nextToken () ),
-                    Integer.parseInt ( st.nextToken () ) );
+            color = new Color (
+                    Integer.parseInt ( st.nextToken () ),
+                    Integer.parseInt ( st.nextToken () ),
+                    Integer.parseInt ( st.nextToken () )
+            );
         }
         else if ( count == 4 )
         {
-            return new Color ( Integer.parseInt ( st.nextToken () ), Integer.parseInt ( st.nextToken () ),
-                    Integer.parseInt ( st.nextToken () ), Integer.parseInt ( st.nextToken () ) );
+            color = new Color (
+                    Integer.parseInt ( st.nextToken () ),
+                    Integer.parseInt ( st.nextToken () ),
+                    Integer.parseInt ( st.nextToken () ),
+                    Integer.parseInt ( st.nextToken () )
+            );
         }
         else
         {
-            return null;
+            throw new RuntimeException ( "Unable to parse RGB color: " + rgba );
         }
+        return color;
     }
 
     /**
-     * Returns black color with specified alpha
+     * Returns randomly generated soft {@link Color} based on the specified {@link Color}.
      *
-     * @param alpha color alpha
-     * @return black color with specified alpha
+     * @param base {@link Color} base
+     * @return randomly generated soft {@link Color} based on the specified {@link Color}
      */
-    public static Color black ( final int alpha )
-    {
-        return new Color ( 0, 0, 0, alpha );
-    }
-
-    /**
-     * Returns white color with specified alpha
-     *
-     * @param alpha color alpha
-     * @return white color with specified alpha
-     */
-    public static Color white ( final int alpha )
-    {
-        return new Color ( 255, 255, 255, alpha );
-    }
-
-    /**
-     * Returns randomly generated soft color based on the specified color.
-     *
-     * @param base color base
-     * @return randomly generated soft color based on the specified color
-     */
-    public static Color getRandomSoftColor ( final Color base )
+    @NotNull
+    public static Color softColor ( @NotNull final Color base )
     {
         final Random random = new Random ();
-        int red = random.nextInt ( 256 );
-        int green = random.nextInt ( 256 );
-        int blue = random.nextInt ( 256 );
-        if ( base != null )
-        {
-            red = ( red + base.getRed () ) / 2;
-            green = ( green + base.getGreen () ) / 2;
-            blue = ( blue + base.getBlue () ) / 2;
-        }
-        return new Color ( red, green, blue );
+        return new Color (
+                ( random.nextInt ( 256 ) + base.getRed () ) / 2,
+                ( random.nextInt ( 256 ) + base.getGreen () ) / 2,
+                ( random.nextInt ( 256 ) + base.getBlue () ) / 2
+        );
     }
 }

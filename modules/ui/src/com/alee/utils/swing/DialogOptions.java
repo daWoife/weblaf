@@ -22,7 +22,6 @@ package com.alee.utils.swing;
  *
  * @author Mikle Garin
  */
-
 public interface DialogOptions
 {
     /**
@@ -46,7 +45,7 @@ public interface DialogOptions
     public static final int NONE_OPTION = -2;
 
     /**
-     * Return value if an error occured.
+     * Return value if an error occurred.
      */
     public static final int ERROR_OPTION = -3;
 }

@@ -17,73 +17,46 @@
 
 package com.alee.laf.scroll;
 
-import com.alee.extended.painter.AdaptivePainter;
-import com.alee.extended.painter.Painter;
+import com.alee.api.annotations.NotNull;
+import com.alee.painter.AdaptivePainter;
+import com.alee.painter.Painter;
 
 import javax.swing.*;
-import java.awt.*;
 
 /**
- * Simple ScrollBarPainter adapter class.
- * It is used to install simple non-specific painters into WebScrollBarUI.
+ * Simple {@link ScrollBarPainter} adapter class.
+ * It is used to install simple non-specific painters into {@link WScrollBarUI}.
  *
+ * @param <C> component type
+ * @param <U> component UI type
  * @author Mikle Garin
  */
-
-public class AdaptiveScrollBarPainter<E extends JScrollBar> extends AdaptivePainter<E> implements ScrollBarPainter<E>
+public final class AdaptiveScrollBarPainter<C extends JScrollBar, U extends WScrollBarUI> extends AdaptivePainter<C, U>
+        implements IScrollBarPainter<C, U>
 {
     /**
-     * Constructs new AdaptiveScrollBarPainter for the specified painter.
+     * Constructs new {@link AdaptiveScrollBarPainter} for the specified painter.
      *
      * @param painter painter to adapt
      */
-    public AdaptiveScrollBarPainter ( final Painter painter )
+    public AdaptiveScrollBarPainter ( @NotNull final Painter painter )
     {
         super ( painter );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setPaintButtons ( final boolean paint )
+    public void prepareToPaint ( @NotNull final ScrollBarPaintParameters parameters )
     {
-        // Ignore this method in adaptive class
+        /**
+         * Nothing needs to be done for adaptive class.
+         */
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setPaintTrack ( final boolean paint )
+    public void cleanupAfterPaint ()
     {
-        // Ignore this method in adaptive class
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setDragged ( final boolean dragged )
-    {
-        // Ignore this method in adaptive class
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setTrackBounds ( final Rectangle bounds )
-    {
-        // Ignore this method in adaptive class
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setThumbBounds ( final Rectangle bounds )
-    {
-        // Ignore this method in adaptive class
+        /**
+         * Nothing needs to be done for adaptive class.
+         */
     }
 }

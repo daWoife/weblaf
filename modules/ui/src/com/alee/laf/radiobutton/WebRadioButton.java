@@ -17,28 +17,25 @@
 
 package com.alee.laf.radiobutton;
 
-import com.alee.laf.WebLookAndFeel;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
 import com.alee.managers.hotkey.HotkeyData;
 import com.alee.managers.hotkey.HotkeyInfo;
 import com.alee.managers.hotkey.HotkeyManager;
-import com.alee.managers.language.LanguageManager;
-import com.alee.managers.language.LanguageMethods;
-import com.alee.managers.language.data.TooltipWay;
-import com.alee.managers.language.updaters.LanguageUpdater;
-import com.alee.managers.log.Log;
-import com.alee.managers.settings.DefaultValue;
-import com.alee.managers.settings.SettingsManager;
+import com.alee.managers.language.*;
+import com.alee.managers.settings.Configuration;
 import com.alee.managers.settings.SettingsMethods;
 import com.alee.managers.settings.SettingsProcessor;
+import com.alee.managers.settings.UISettingsManager;
+import com.alee.managers.style.*;
 import com.alee.managers.tooltip.ToolTipMethods;
 import com.alee.managers.tooltip.TooltipManager;
+import com.alee.managers.tooltip.TooltipWay;
 import com.alee.managers.tooltip.WebCustomTooltip;
-import com.alee.utils.EventUtils;
-import com.alee.utils.ReflectUtils;
-import com.alee.utils.SizeUtils;
-import com.alee.utils.SwingUtils;
-import com.alee.utils.laf.ShapeProvider;
-import com.alee.utils.swing.*;
+import com.alee.painter.Painter;
+import com.alee.painter.PainterSupport;
+import com.alee.utils.swing.MouseButton;
+import com.alee.utils.swing.extensions.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -48,60 +45,234 @@ import java.awt.event.MouseAdapter;
 import java.util.List;
 
 /**
+ * {@link JRadioButton} extension class.
+ * It contains various useful methods to simplify core component usage.
+ *
+ * This component should never be used with a non-Web UIs as it might cause an unexpected behavior.
+ * You could still use that component even if WebLaF is not your application LaF as this component will use Web-UI in any case.
+ *
  * @author Mikle Garin
+ * @see JRadioButton
+ * @see WebRadioButtonUI
+ * @see RadioButtonPainter
  */
-
-public class WebRadioButton extends JRadioButton
-        implements ShapeProvider, EventMethods, ToolTipMethods, LanguageMethods, SettingsMethods, FontMethods<WebRadioButton>,
-        SizeMethods<WebRadioButton>
+public class WebRadioButton extends JRadioButton implements Styleable, EventMethods, ToolTipMethods, LanguageMethods, LanguageEventMethods,
+        SettingsMethods, FontMethods<WebRadioButton>, SizeMethods<WebRadioButton>
 {
+    /**
+     * Constructs new radio button.
+     */
     public WebRadioButton ()
     {
-        super ();
-    }
-
-    public WebRadioButton ( final boolean selected )
-    {
-        super ( "", selected );
-    }
-
-    public WebRadioButton ( final Icon icon )
-    {
-        super ( icon );
-    }
-
-    public WebRadioButton ( final Action a )
-    {
-        super ( a );
-    }
-
-    public WebRadioButton ( final Icon icon, final boolean selected )
-    {
-        super ( icon, selected );
-    }
-
-    public WebRadioButton ( final String text )
-    {
-        super ( text );
-    }
-
-    public WebRadioButton ( final String text, final boolean selected )
-    {
-        super ( text, selected );
-    }
-
-    public WebRadioButton ( final String text, final Icon icon )
-    {
-        super ( text, icon );
-    }
-
-    public WebRadioButton ( final String text, final Icon icon, final boolean selected )
-    {
-        super ( text, icon, selected );
+        this ( StyleId.auto );
     }
 
     /**
-     * Proxified kotkey manager methods
+     * Constructs new radio button.
+     *
+     * @param action radio button action
+     */
+    public WebRadioButton ( final Action action )
+    {
+        this ( StyleId.auto, action );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final boolean selected )
+    {
+        this ( StyleId.auto, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param icon custom radio button icon
+     */
+    public WebRadioButton ( final Icon icon )
+    {
+        this ( StyleId.auto, icon );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param icon     custom radio button icon
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final Icon icon, final boolean selected )
+    {
+        this ( StyleId.auto, icon, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param text radio button text
+     */
+    public WebRadioButton ( final String text )
+    {
+        this ( StyleId.auto, text );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param text     radio button text
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final String text, final boolean selected )
+    {
+        this ( StyleId.auto, text, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param text radio button text
+     * @param icon custom radio button icon
+     */
+    public WebRadioButton ( final String text, final Icon icon )
+    {
+        this ( StyleId.auto, text, icon );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param text     radio button text
+     * @param icon     custom radio button icon
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final String text, final Icon icon, final boolean selected )
+    {
+        this ( StyleId.auto, text, icon, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id {@link StyleId}
+     */
+    public WebRadioButton ( final StyleId id )
+    {
+        this ( id, null, null, false );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id     {@link StyleId}
+     * @param action radio button action
+     */
+    public WebRadioButton ( final StyleId id, final Action action )
+    {
+        this ( id, null, null, false );
+        setAction ( action );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id       {@link StyleId}
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final StyleId id, final boolean selected )
+    {
+        this ( id, null, null, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id   {@link StyleId}
+     * @param icon custom radio button icon
+     */
+    public WebRadioButton ( final StyleId id, final Icon icon )
+    {
+        this ( id, null, icon, false );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id       {@link StyleId}
+     * @param icon     custom radio button icon
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final StyleId id, final Icon icon, final boolean selected )
+    {
+        this ( id, null, icon, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id   {@link StyleId}
+     * @param text radio button text
+     */
+    public WebRadioButton ( final StyleId id, final String text )
+    {
+        this ( id, text, null, false );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id       {@link StyleId}
+     * @param text     radio button text
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final StyleId id, final String text, final boolean selected )
+    {
+        this ( id, text, null, selected );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id   {@link StyleId}
+     * @param text radio button text
+     * @param icon custom radio button icon
+     */
+    public WebRadioButton ( final StyleId id, final String text, final Icon icon )
+    {
+        this ( id, text, icon, false );
+    }
+
+    /**
+     * Constructs new radio button.
+     *
+     * @param id       {@link StyleId}
+     * @param text     radio button text
+     * @param icon     custom radio button icon
+     * @param selected whether or not radio button should be selected
+     */
+    public WebRadioButton ( final StyleId id, final String text, final Icon icon, final boolean selected )
+    {
+        super ( text, icon, selected );
+        setStyleId ( id );
+    }
+
+    /**
+     * Initializes radiobutton settings.
+     *
+     * @param text radio button text initial text
+     * @param icon custom radio button icon initial icon
+     */
+    @Override
+    protected void init ( final String text, final Icon icon )
+    {
+        // Initializing translation if required
+        super.init ( UILanguageManager.getInitialText ( text ), icon );
+        UILanguageManager.registerInitialLanguage ( this, text );
+    }
+
+    /**
+     * Hotkey manager methods
      */
 
     public HotkeyInfo addHotkey ( final Integer keyCode )
@@ -159,1069 +330,841 @@ public class WebRadioButton extends JRadioButton
         HotkeyManager.unregisterHotkeys ( this );
     }
 
-    /**
-     * UI methods
-     */
+    @NotNull
+    @Override
+    public StyleId getDefaultStyleId ()
+    {
+        return StyleId.radiobutton;
+    }
 
+    @NotNull
+    @Override
+    public StyleId getStyleId ()
+    {
+        return StyleManager.getStyleId ( this );
+    }
+
+    @NotNull
+    @Override
+    public StyleId setStyleId ( @NotNull final StyleId id )
+    {
+        return StyleManager.setStyleId ( this, id );
+    }
+
+    @NotNull
+    @Override
+    public StyleId resetStyleId ()
+    {
+        return StyleManager.resetStyleId ( this );
+    }
+
+    @NotNull
+    @Override
+    public Skin getSkin ()
+    {
+        return StyleManager.getSkin ( this );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin )
+    {
+        return StyleManager.setSkin ( this, skin );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin, final boolean recursively )
+    {
+        return StyleManager.setSkin ( this, skin, recursively );
+    }
+
+    @Nullable
+    @Override
+    public Skin resetSkin ()
+    {
+        return StyleManager.resetSkin ( this );
+    }
+
+    @Override
+    public void addStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.addStyleListener ( this, listener );
+    }
+
+    @Override
+    public void removeStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.removeStyleListener ( this, listener );
+    }
+
+    @Nullable
+    @Override
+    public Painter getCustomPainter ()
+    {
+        return StyleManager.getCustomPainter ( this );
+    }
+
+    @Nullable
+    @Override
+    public Painter setCustomPainter ( @NotNull final Painter painter )
+    {
+        return StyleManager.setCustomPainter ( this, painter );
+    }
+
+    @Override
+    public boolean resetCustomPainter ()
+    {
+        return StyleManager.resetCustomPainter ( this );
+    }
+
+    @NotNull
+    @Override
+    public Shape getPainterShape ()
+    {
+        return PainterSupport.getShape ( this );
+    }
+
+    @Override
+    public boolean isShapeDetectionEnabled ()
+    {
+        return PainterSupport.isShapeDetectionEnabled ( this );
+    }
+
+    @Override
+    public void setShapeDetectionEnabled ( final boolean enabled )
+    {
+        PainterSupport.setShapeDetectionEnabled ( this, enabled );
+    }
+
+    @Nullable
     @Override
     public Insets getMargin ()
     {
-        return getWebUI ().getMargin ();
+        return PainterSupport.getMargin ( this );
     }
 
     @Override
-    public void setMargin ( final Insets margin )
+    public void setMargin ( final int margin )
     {
-        getWebUI ().setMargin ( margin );
+        PainterSupport.setMargin ( this, margin );
     }
 
+    @Override
     public void setMargin ( final int top, final int left, final int bottom, final int right )
     {
-        setMargin ( new Insets ( top, left, bottom, right ) );
-    }
-
-    public void setMargin ( final int spacing )
-    {
-        setMargin ( spacing, spacing, spacing, spacing );
-    }
-
-    public boolean isAnimated ()
-    {
-        return getWebUI ().isAnimated ();
-    }
-
-    public void setAnimated ( final boolean animated )
-    {
-        getWebUI ().setAnimated ( animated );
-    }
-
-    public boolean isRolloverDarkBorderOnly ()
-    {
-        return getWebUI ().isRolloverDarkBorderOnly ();
-    }
-
-    public void setRolloverDarkBorderOnly ( final boolean rolloverDarkBorderOnly )
-    {
-        getWebUI ().setRolloverDarkBorderOnly ( rolloverDarkBorderOnly );
-    }
-
-    public Color getBorderColor ()
-    {
-        return getWebUI ().getBorderColor ();
-    }
-
-    public void setBorderColor ( final Color borderColor )
-    {
-        getWebUI ().setBorderColor ( borderColor );
-    }
-
-    public Color getDarkBorderColor ()
-    {
-        return getWebUI ().getDarkBorderColor ();
-    }
-
-    public void setDarkBorderColor ( final Color darkBorderColor )
-    {
-        getWebUI ().setDarkBorderColor ( darkBorderColor );
-    }
-
-    public Color getDisabledBorderColor ()
-    {
-        return getWebUI ().getDisabledBorderColor ();
-    }
-
-    public void setDisabledBorderColor ( final Color disabledBorderColor )
-    {
-        getWebUI ().setDisabledBorderColor ( disabledBorderColor );
-    }
-
-    public Color getTopBgColor ()
-    {
-        return getWebUI ().getTopBgColor ();
-    }
-
-    public void setTopBgColor ( final Color topBgColor )
-    {
-        getWebUI ().setTopBgColor ( topBgColor );
-    }
-
-    public Color getBottomBgColor ()
-    {
-        return getWebUI ().getBottomBgColor ();
-    }
-
-    public void setBottomBgColor ( final Color bottomBgColor )
-    {
-        getWebUI ().setBottomBgColor ( bottomBgColor );
-    }
-
-    public Color getTopSelectedBgColor ()
-    {
-        return getWebUI ().getTopSelectedBgColor ();
-    }
-
-    public void setTopSelectedBgColor ( final Color topSelectedBgColor )
-    {
-        getWebUI ().setTopSelectedBgColor ( topSelectedBgColor );
-    }
-
-    public Color getBottomSelectedBgColor ()
-    {
-        return getWebUI ().getBottomSelectedBgColor ();
-    }
-
-    public void setBottomSelectedBgColor ( final Color bottomSelectedBgColor )
-    {
-        getWebUI ().setBottomSelectedBgColor ( bottomSelectedBgColor );
-    }
-
-    public int getShadeWidth ()
-    {
-        return getWebUI ().getShadeWidth ();
-    }
-
-    public void setShadeWidth ( final int shadeWidth )
-    {
-        getWebUI ().setShadeWidth ( shadeWidth );
-    }
-
-    public int getIconWidth ()
-    {
-        return getWebUI ().getIconWidth ();
-    }
-
-    public void setIconWidth ( final int iconWidth )
-    {
-        getWebUI ().setIconWidth ( iconWidth );
-    }
-
-    public int getIconHeight ()
-    {
-        return getWebUI ().getIconHeight ();
-    }
-
-    public void setIconHeight ( final int iconHeight )
-    {
-        getWebUI ().setIconHeight ( iconHeight );
+        PainterSupport.setMargin ( this, top, left, bottom, right );
     }
 
     @Override
-    public void setSelected ( final boolean b )
+    public void setMargin ( @Nullable final Insets margin )
     {
-        setSelected ( b, isShowing () );
+        PainterSupport.setMargin ( this, margin );
     }
 
-    public void setSelected ( final boolean b, final boolean withAnimation )
+    @Nullable
+    @Override
+    public Insets getPadding ()
     {
-        final boolean animated = isAnimated ();
-        if ( !withAnimation && animated )
-        {
-            setAnimated ( false );
-        }
-        super.setSelected ( b );
-        if ( !withAnimation )
-        {
-            setAnimated ( animated );
-        }
+        return PainterSupport.getPadding ( this );
     }
 
     @Override
-    public Shape provideShape ()
+    public void setPadding ( final int padding )
     {
-        return getWebUI ().provideShape ();
-    }
-
-    public WebRadioButtonUI getWebUI ()
-    {
-        return ( WebRadioButtonUI ) getUI ();
+        PainterSupport.setPadding ( this, padding );
     }
 
     @Override
-    public void updateUI ()
+    public void setPadding ( final int top, final int left, final int bottom, final int right )
     {
-        if ( getUI () == null || !( getUI () instanceof WebRadioButtonUI ) )
-        {
-            try
-            {
-                setUI ( ( WebRadioButtonUI ) ReflectUtils.createInstance ( WebLookAndFeel.radioButtonUI ) );
-            }
-            catch ( final Throwable e )
-            {
-                Log.error ( this, e );
-                setUI ( new WebRadioButtonUI () );
-            }
-        }
-        else
-        {
-            setUI ( getUI () );
-        }
+        PainterSupport.setPadding ( this, top, left, bottom, right );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public MouseAdapter onMousePress ( final MouseEventRunnable runnable )
+    public void setPadding ( @Nullable final Insets padding )
     {
-        return EventUtils.onMousePress ( this, runnable );
+        PainterSupport.setPadding ( this, padding );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMousePress ( final MouseButton mouseButton, final MouseEventRunnable runnable )
+    public MouseAdapter onMousePress ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMousePress ( this, mouseButton, runnable );
+        return EventMethodsImpl.onMousePress ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseEnter ( final MouseEventRunnable runnable )
+    public MouseAdapter onMousePress ( @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMouseEnter ( this, runnable );
+        return EventMethodsImpl.onMousePress ( this, mouseButton, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseExit ( final MouseEventRunnable runnable )
+    public MouseAdapter onMouseEnter ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMouseExit ( this, runnable );
+        return EventMethodsImpl.onMouseEnter ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseDrag ( final MouseEventRunnable runnable )
+    public MouseAdapter onMouseExit ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMouseDrag ( this, runnable );
+        return EventMethodsImpl.onMouseExit ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseDrag ( final MouseButton mouseButton, final MouseEventRunnable runnable )
+    public MouseAdapter onMouseDrag ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMouseDrag ( this, mouseButton, runnable );
+        return EventMethodsImpl.onMouseDrag ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseClick ( final MouseEventRunnable runnable )
+    public MouseAdapter onMouseDrag ( @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMouseClick ( this, runnable );
+        return EventMethodsImpl.onMouseDrag ( this, mouseButton, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseClick ( final MouseButton mouseButton, final MouseEventRunnable runnable )
+    public MouseAdapter onMouseClick ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMouseClick ( this, mouseButton, runnable );
+        return EventMethodsImpl.onMouseClick ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onDoubleClick ( final MouseEventRunnable runnable )
+    public MouseAdapter onMouseClick ( @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onDoubleClick ( this, runnable );
+        return EventMethodsImpl.onMouseClick ( this, mouseButton, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMenuTrigger ( final MouseEventRunnable runnable )
+    public MouseAdapter onDoubleClick ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onMenuTrigger ( this, runnable );
+        return EventMethodsImpl.onDoubleClick ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyType ( final KeyEventRunnable runnable )
+    public MouseAdapter onMenuTrigger ( @NotNull final MouseEventRunnable runnable )
     {
-        return EventUtils.onKeyType ( this, runnable );
+        return EventMethodsImpl.onMenuTrigger ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyType ( final HotkeyData hotkey, final KeyEventRunnable runnable )
+    public KeyAdapter onKeyType ( @NotNull final KeyEventRunnable runnable )
     {
-        return EventUtils.onKeyType ( this, hotkey, runnable );
+        return EventMethodsImpl.onKeyType ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyPress ( final KeyEventRunnable runnable )
+    public KeyAdapter onKeyType ( @Nullable final HotkeyData hotkey, @NotNull final KeyEventRunnable runnable )
     {
-        return EventUtils.onKeyPress ( this, runnable );
+        return EventMethodsImpl.onKeyType ( this, hotkey, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyPress ( final HotkeyData hotkey, final KeyEventRunnable runnable )
+    public KeyAdapter onKeyPress ( @NotNull final KeyEventRunnable runnable )
     {
-        return EventUtils.onKeyPress ( this, hotkey, runnable );
+        return EventMethodsImpl.onKeyPress ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyRelease ( final KeyEventRunnable runnable )
+    public KeyAdapter onKeyPress ( @Nullable final HotkeyData hotkey, @NotNull final KeyEventRunnable runnable )
     {
-        return EventUtils.onKeyRelease ( this, runnable );
+        return EventMethodsImpl.onKeyPress ( this, hotkey, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyRelease ( final HotkeyData hotkey, final KeyEventRunnable runnable )
+    public KeyAdapter onKeyRelease ( @NotNull final KeyEventRunnable runnable )
     {
-        return EventUtils.onKeyRelease ( this, hotkey, runnable );
+        return EventMethodsImpl.onKeyRelease ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public FocusAdapter onFocusGain ( final FocusEventRunnable runnable )
+    public KeyAdapter onKeyRelease ( @Nullable final HotkeyData hotkey, @NotNull final KeyEventRunnable runnable )
     {
-        return EventUtils.onFocusGain ( this, runnable );
+        return EventMethodsImpl.onKeyRelease ( this, hotkey, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public FocusAdapter onFocusLoss ( final FocusEventRunnable runnable )
+    public FocusAdapter onFocusGain ( @NotNull final FocusEventRunnable runnable )
     {
-        return EventUtils.onFocusLoss ( this, runnable );
+        return EventMethodsImpl.onFocusGain ( this, runnable );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
+    @Override
+    public FocusAdapter onFocusLoss ( @NotNull final FocusEventRunnable runnable )
+    {
+        return EventMethodsImpl.onFocusLoss ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onDragStart ( final int shift, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onDragStart ( this, shift, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onDragStart ( final int shift, @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onDragStart ( this, shift, mouseButton, runnable );
+    }
+
     @Override
     public WebCustomTooltip setToolTip ( final String tooltip )
     {
         return TooltipManager.setTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final Icon icon, final String tooltip )
     {
         return TooltipManager.setTooltip ( this, icon, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.setTooltip ( this, icon, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.setTooltip ( this, icon, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip )
     {
         return TooltipManager.setTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip, final int delay )
     {
         return TooltipManager.setTooltip ( this, tooltip, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final String tooltip )
     {
         return TooltipManager.addTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final Icon icon, final String tooltip )
     {
         return TooltipManager.addTooltip ( this, icon, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.addTooltip ( this, icon, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.addTooltip ( this, icon, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip )
     {
         return TooltipManager.addTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip, final int delay )
     {
         return TooltipManager.addTooltip ( this, tooltip, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTip ( final WebCustomTooltip tooltip )
     {
         TooltipManager.removeTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTips ()
     {
         TooltipManager.removeTooltips ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTips ( final WebCustomTooltip... tooltips )
     {
         TooltipManager.removeTooltips ( this, tooltips );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTips ( final List<WebCustomTooltip> tooltips )
     {
         TooltipManager.removeTooltips ( this, tooltips );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public void setLanguage ( final String key, final Object... data )
+    public String getLanguage ()
     {
-        LanguageManager.registerComponent ( this, key, data );
+        return UILanguageManager.getComponentKey ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void updateLanguage ( final Object... data )
+    public void setLanguage ( @NotNull final String key, @Nullable final Object... data )
     {
-        LanguageManager.updateComponent ( this, data );
+        UILanguageManager.registerComponent ( this, key, data );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void updateLanguage ( final String key, final Object... data )
+    public void updateLanguage ( @Nullable final Object... data )
     {
-        LanguageManager.updateComponent ( this, key, data );
+        UILanguageManager.updateComponent ( this, data );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void updateLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, key, data );
+    }
+
     @Override
     public void removeLanguage ()
     {
-        LanguageManager.unregisterComponent ( this );
+        UILanguageManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isLanguageSet ()
     {
-        return LanguageManager.isRegisteredComponent ( this );
+        return UILanguageManager.isRegisteredComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setLanguageUpdater ( final LanguageUpdater updater )
+    public void setLanguageUpdater ( @NotNull final LanguageUpdater updater )
     {
-        LanguageManager.registerLanguageUpdater ( this, updater );
+        UILanguageManager.registerLanguageUpdater ( this, updater );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeLanguageUpdater ()
     {
-        LanguageManager.unregisterLanguageUpdater ( this );
+        UILanguageManager.unregisterLanguageUpdater ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key )
+    public void addLanguageListener ( @NotNull final LanguageListener listener )
     {
-        SettingsManager.registerComponent ( this, key );
+        UILanguageManager.addLanguageListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String key, final Class<T> defaultValueClass )
+    public void removeLanguageListener ( @NotNull final LanguageListener listener )
     {
-        SettingsManager.registerComponent ( this, key, defaultValueClass );
+        UILanguageManager.removeLanguageListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final Object defaultValue )
+    public void removeLanguageListeners ()
     {
-        SettingsManager.registerComponent ( this, key, defaultValue );
+        UILanguageManager.removeLanguageListeners ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key )
+    public void addDictionaryListener ( @NotNull final DictionaryListener listener )
     {
-        SettingsManager.registerComponent ( this, group, key );
+        UILanguageManager.addDictionaryListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String group, final String key, final Class<T> defaultValueClass )
+    public void removeDictionaryListener ( @NotNull final DictionaryListener listener )
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValueClass );
+        UILanguageManager.removeDictionaryListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key, final Object defaultValue )
+    public void removeDictionaryListeners ()
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValue );
+        UILanguageManager.removeDictionaryListeners ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void registerSettings ( final Configuration configuration )
     {
-        SettingsManager.registerComponent ( this, key, loadInitialSettings, applySettingsChanges );
+        UISettingsManager.registerComponent ( this, configuration );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String key, final Class<T> defaultValueClass,
-                                                            final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void registerSettings ( final SettingsProcessor processor )
     {
-        SettingsManager.registerComponent ( this, key, defaultValueClass, loadInitialSettings, applySettingsChanges );
+        UISettingsManager.registerComponent ( this, processor );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerSettings ( final String key, final Object defaultValue, final boolean loadInitialSettings,
-                                   final boolean applySettingsChanges )
-    {
-        SettingsManager.registerComponent ( this, key, defaultValue, loadInitialSettings, applySettingsChanges );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public <T extends DefaultValue> void registerSettings ( final String group, final String key, final Class<T> defaultValueClass,
-                                                            final boolean loadInitialSettings, final boolean applySettingsChanges )
-    {
-        SettingsManager.registerComponent ( this, group, key, defaultValueClass, loadInitialSettings, applySettingsChanges );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerSettings ( final String group, final String key, final Object defaultValue, final boolean loadInitialSettings,
-                                   final boolean applySettingsChanges )
-    {
-        SettingsManager.registerComponent ( this, group, key, defaultValue, loadInitialSettings, applySettingsChanges );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerSettings ( final SettingsProcessor settingsProcessor )
-    {
-        SettingsManager.registerComponent ( this, settingsProcessor );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void unregisterSettings ()
     {
-        SettingsManager.unregisterComponent ( this );
+        UISettingsManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void loadSettings ()
     {
-        SettingsManager.loadComponentSettings ( this );
+        UISettingsManager.loadSettings ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void saveSettings ()
     {
-        SettingsManager.saveComponentSettings ( this );
+        UISettingsManager.saveSettings ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setPlainFont ()
     {
-        return SwingUtils.setPlainFont ( this );
+        return FontMethodsImpl.setPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setPlainFont ( final boolean apply )
     {
-        return SwingUtils.setPlainFont ( this, apply );
+        return FontMethodsImpl.setPlainFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isPlainFont ()
     {
-        return SwingUtils.isPlainFont ( this );
+        return FontMethodsImpl.isPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setBoldFont ()
     {
-        return SwingUtils.setBoldFont ( this );
+        return FontMethodsImpl.setBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setBoldFont ( final boolean apply )
     {
-        return SwingUtils.setBoldFont ( this, apply );
+        return FontMethodsImpl.setBoldFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isBoldFont ()
     {
-        return SwingUtils.isBoldFont ( this );
+        return FontMethodsImpl.isBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setItalicFont ()
     {
-        return SwingUtils.setItalicFont ( this );
+        return FontMethodsImpl.setItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setItalicFont ( final boolean apply )
     {
-        return SwingUtils.setItalicFont ( this, apply );
+        return FontMethodsImpl.setItalicFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isItalicFont ()
     {
-        return SwingUtils.isItalicFont ( this );
+        return FontMethodsImpl.isItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setFontStyle ( final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontStyle ( this, bold, italic );
+        return FontMethodsImpl.setFontStyle ( this, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setFontStyle ( final int style )
     {
-        return SwingUtils.setFontStyle ( this, style );
+        return FontMethodsImpl.setFontStyle ( this, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setFontSize ( final int fontSize )
     {
-        return SwingUtils.setFontSize ( this, fontSize );
+        return FontMethodsImpl.setFontSize ( this, fontSize );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton changeFontSize ( final int change )
     {
-        return SwingUtils.changeFontSize ( this, change );
+        return FontMethodsImpl.changeFontSize ( this, change );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getFontSize ()
     {
-        return SwingUtils.getFontSize ( this );
+        return FontMethodsImpl.getFontSize ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setFontSizeAndStyle ( final int fontSize, final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, bold, italic );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setFontSizeAndStyle ( final int fontSize, final int style )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, style );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebRadioButton setFontName ( final String fontName )
     {
-        return SwingUtils.setFontName ( this, fontName );
+        return FontMethodsImpl.setFontName ( this, fontName );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getFontName ()
     {
-        return SwingUtils.getFontName ( this );
+        return FontMethodsImpl.getFontName ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getPreferredWidth ()
     {
-        return SizeUtils.getPreferredWidth ( this );
+        return SizeMethodsImpl.getPreferredWidth ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public WebRadioButton setPreferredWidth ( final int preferredWidth )
     {
-        return SizeUtils.setPreferredWidth ( this, preferredWidth );
+        return SizeMethodsImpl.setPreferredWidth ( this, preferredWidth );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getPreferredHeight ()
     {
-        return SizeUtils.getPreferredHeight ( this );
+        return SizeMethodsImpl.getPreferredHeight ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public WebRadioButton setPreferredHeight ( final int preferredHeight )
     {
-        return SizeUtils.setPreferredHeight ( this, preferredHeight );
+        return SizeMethodsImpl.setPreferredHeight ( this, preferredHeight );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMinimumWidth ()
-    {
-        return SizeUtils.getMinimumWidth ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebRadioButton setMinimumWidth ( final int minimumWidth )
-    {
-        return SizeUtils.setMinimumWidth ( this, minimumWidth );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMinimumHeight ()
-    {
-        return SizeUtils.getMinimumHeight ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebRadioButton setMinimumHeight ( final int minimumHeight )
-    {
-        return SizeUtils.setMinimumHeight ( this, minimumHeight );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMaximumWidth ()
-    {
-        return SizeUtils.getMaximumWidth ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebRadioButton setMaximumWidth ( final int maximumWidth )
-    {
-        return SizeUtils.setMaximumWidth ( this, maximumWidth );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMaximumHeight ()
-    {
-        return SizeUtils.getMaximumHeight ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebRadioButton setMaximumHeight ( final int maximumHeight )
-    {
-        return SizeUtils.setMaximumHeight ( this, maximumHeight );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public Dimension getPreferredSize ()
     {
-        return SizeUtils.getPreferredSize ( this, super.getPreferredSize () );
+        return SizeMethodsImpl.getPreferredSize ( this, super.getPreferredSize () );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
+    @Override
+    public Dimension getOriginalPreferredSize ()
+    {
+        return SizeMethodsImpl.getOriginalPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
     @Override
     public WebRadioButton setPreferredSize ( final int width, final int height )
     {
-        return SizeUtils.setPreferredSize ( this, width, height );
+        return SizeMethodsImpl.setPreferredSize ( this, width, height );
+    }
+
+    @Override
+    public int getMaximumWidth ()
+    {
+        return SizeMethodsImpl.getMaximumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebRadioButton setMaximumWidth ( final int maximumWidth )
+    {
+        return SizeMethodsImpl.setMaximumWidth ( this, maximumWidth );
+    }
+
+    @Override
+    public int getMaximumHeight ()
+    {
+        return SizeMethodsImpl.getMaximumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebRadioButton setMaximumHeight ( final int maximumHeight )
+    {
+        return SizeMethodsImpl.setMaximumHeight ( this, maximumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMaximumSize ()
+    {
+        return SizeMethodsImpl.getMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMaximumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebRadioButton setMaximumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMaximumSize ( this, width, height );
+    }
+
+    @Override
+    public int getMinimumWidth ()
+    {
+        return SizeMethodsImpl.getMinimumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebRadioButton setMinimumWidth ( final int minimumWidth )
+    {
+        return SizeMethodsImpl.setMinimumWidth ( this, minimumWidth );
+    }
+
+    @Override
+    public int getMinimumHeight ()
+    {
+        return SizeMethodsImpl.getMinimumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebRadioButton setMinimumHeight ( final int minimumHeight )
+    {
+        return SizeMethodsImpl.setMinimumHeight ( this, minimumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMinimumSize ()
+    {
+        return SizeMethodsImpl.getMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMinimumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebRadioButton setMinimumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMinimumSize ( this, width, height );
+    }
+
+    /**
+     * Returns the look and feel (LaF) object that renders this component.
+     *
+     * @return the {@link WRadioButtonUI} object that renders this component
+     */
+    @Override
+    public WRadioButtonUI getUI ()
+    {
+        return ( WRadioButtonUI ) super.getUI ();
+    }
+
+    /**
+     * Sets the LaF object that renders this component.
+     *
+     * @param ui {@link WRadioButtonUI}
+     */
+    public void setUI ( final WRadioButtonUI ui )
+    {
+        super.setUI ( ui );
+    }
+
+    @Override
+    public void updateUI ()
+    {
+        StyleManager.getDescriptor ( this ).updateUI ( this );
+    }
+
+    @Override
+    public String getUIClassID ()
+    {
+        return StyleManager.getDescriptor ( this ).getUIClassId ();
     }
 }

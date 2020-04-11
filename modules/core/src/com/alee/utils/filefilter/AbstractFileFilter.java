@@ -17,6 +17,11 @@
 
 package com.alee.utils.filefilter;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.ui.IconBridge;
+import com.alee.api.ui.RenderingParameters;
+import com.alee.api.ui.TextBridge;
 import com.alee.utils.compare.Filter;
 
 import javax.swing.*;
@@ -29,21 +34,39 @@ import java.io.FileFilter;
  *
  * @author Mikle Garin
  */
-
-public abstract class AbstractFileFilter extends javax.swing.filechooser.FileFilter implements FileFilter, Filter<File>
+public abstract class AbstractFileFilter extends javax.swing.filechooser.FileFilter
+        implements FileFilter, Filter<File>, IconBridge<RenderingParameters>, TextBridge<RenderingParameters>
 {
     /**
-     * Returns file filter icon.
+     * Returns file filter {@link Icon}.
      *
-     * @return file filter icon
+     * @param parameters {@link RenderingParameters}
+     * @return file filter {@link Icon}
      */
-    public abstract ImageIcon getIcon ();
+    @Nullable
+    @Override
+    public abstract Icon getIcon ( @NotNull RenderingParameters parameters );
+
+    /**
+     * Returns file filter title.
+     * Uses its description but can be overridden.
+     *
+     * @param parameters {@link RenderingParameters}
+     * @return file filter title
+     */
+    @Nullable
+    @Override
+    public String getText ( @NotNull final RenderingParameters parameters )
+    {
+        return getDescription ();
+    }
 
     /**
      * Returns short file filter description.
      *
      * @return short file filter description
      */
+    @NotNull
     @Override
     public abstract String getDescription ();
 
@@ -54,5 +77,5 @@ public abstract class AbstractFileFilter extends javax.swing.filechooser.FileFil
      * @return true if the given file is accepted by this filter, false otherwise
      */
     @Override
-    public abstract boolean accept ( File file );
+    public abstract boolean accept ( @NotNull File file );
 }

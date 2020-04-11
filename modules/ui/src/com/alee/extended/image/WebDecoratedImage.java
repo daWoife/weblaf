@@ -17,11 +17,14 @@
 
 package com.alee.extended.image;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.resource.Resource;
+import com.alee.graphics.filters.GaussianFilter;
+import com.alee.graphics.filters.GrayscaleFilter;
+import com.alee.graphics.filters.MotionBlurFilter;
+import com.alee.laf.WebLookAndFeel;
 import com.alee.utils.GraphicsUtils;
-import com.alee.utils.ImageFilterUtils;
 import com.alee.utils.ImageUtils;
-import com.alee.utils.SwingUtils;
-import com.alee.utils.laf.ShapeProvider;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,11 +32,14 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 
 /**
- * User: mgarin Date: 05.06.12 Time: 16:23
+ * @author Mikle Garin
  */
-
-public class WebDecoratedImage extends JComponent implements SwingConstants, ShapeProvider
+public class WebDecoratedImage extends JComponent implements SwingConstants
 {
+    /**
+     * todo 1. Implement proper UI and styling or merge functionality into existing {@link WebImage}
+     */
+
     private ImageIcon icon;
     private ImageIcon previewIcon;
 
@@ -64,33 +70,26 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         this ( ( ImageIcon ) null );
     }
 
-    public WebDecoratedImage ( String src )
+    public WebDecoratedImage ( @NotNull final Resource resource )
     {
-        this ( ImageUtils.loadImage ( src ) );
+        this ( ImageUtils.loadImageIcon ( resource ) );
     }
 
-    public WebDecoratedImage ( Class nearClass, String src )
+    public WebDecoratedImage ( @NotNull final Image image )
     {
-        this ( ImageUtils.loadImage ( nearClass, src ) );
+        this ( ImageUtils.toNonNullImageIcon ( image ) );
     }
 
-    public WebDecoratedImage ( Image image )
+    public WebDecoratedImage ( @NotNull final Icon icon )
+    {
+        this ( ImageUtils.toNonNullImageIcon ( icon ) );
+    }
+
+    public WebDecoratedImage ( @NotNull final ImageIcon icon )
     {
         super ();
-        SwingUtils.setOrientation ( this );
-        setImage ( image );
-    }
-
-    public WebDecoratedImage ( ImageIcon icon )
-    {
-        super ();
-        SwingUtils.setOrientation ( this );
+        WebLookAndFeel.setOrientation ( this );
         setIcon ( icon );
-    }
-
-    public ImageIcon getPreviewIcon ()
-    {
-        return previewIcon;
     }
 
     public ImageIcon getIcon ()
@@ -98,28 +97,20 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return icon;
     }
 
-    public void setImage ( Image image )
-    {
-        setImage ( image, true );
-    }
-
-    public void setImage ( Image image, boolean update )
-    {
-        setIcon ( new ImageIcon ( image ), update );
-    }
-
-    public void setIcon ( ImageIcon icon )
-    {
-        setIcon ( icon, true );
-    }
-
-    public void setIcon ( ImageIcon icon, boolean update )
+    public void setIcon ( @NotNull final ImageIcon icon )
     {
         this.icon = icon;
-        if ( update )
-        {
-            updatePreview ();
-        }
+        updatePreview ();
+    }
+
+    public void setImage ( @NotNull final Image image )
+    {
+        setIcon ( ImageUtils.toNonNullImageIcon ( image ) );
+    }
+
+    public ImageIcon getPreviewIcon ()
+    {
+        return previewIcon;
     }
 
     public int getHorizontalAlignment ()
@@ -127,7 +118,7 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return horizontalAlignment;
     }
 
-    public void setHorizontalAlignment ( int horizontalAlignment )
+    public void setHorizontalAlignment ( final int horizontalAlignment )
     {
         this.horizontalAlignment = horizontalAlignment;
         repaint ();
@@ -138,7 +129,7 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return verticalAlignment;
     }
 
-    public void setVerticalAlignment ( int verticalAlignment )
+    public void setVerticalAlignment ( final int verticalAlignment )
     {
         this.verticalAlignment = verticalAlignment;
         repaint ();
@@ -149,12 +140,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return drawBorder;
     }
 
-    public void setDrawBorder ( boolean drawBorder )
+    public void setDrawBorder ( final boolean drawBorder )
     {
         setDrawBorder ( drawBorder, true );
     }
 
-    public void setDrawBorder ( boolean drawBorder, boolean update )
+    public void setDrawBorder ( final boolean drawBorder, final boolean update )
     {
         this.drawBorder = drawBorder;
         if ( update )
@@ -168,12 +159,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return borderColor;
     }
 
-    public void setBorderColor ( Color borderColor )
+    public void setBorderColor ( final Color borderColor )
     {
         setBorderColor ( borderColor, true );
     }
 
-    public void setBorderColor ( Color borderColor, boolean update )
+    public void setBorderColor ( final Color borderColor, final boolean update )
     {
         this.borderColor = borderColor;
         if ( update )
@@ -187,12 +178,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return drawGlassLayer;
     }
 
-    public void setDrawGlassLayer ( boolean drawGlassLayer )
+    public void setDrawGlassLayer ( final boolean drawGlassLayer )
     {
         setDrawGlassLayer ( drawGlassLayer, true );
     }
 
-    public void setDrawGlassLayer ( boolean drawGlassLayer, boolean update )
+    public void setDrawGlassLayer ( final boolean drawGlassLayer, final boolean update )
     {
         this.drawGlassLayer = drawGlassLayer;
         if ( update )
@@ -206,12 +197,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return shadeWidth;
     }
 
-    public void setShadeWidth ( int shadeWidth )
+    public void setShadeWidth ( final int shadeWidth )
     {
         setShadeWidth ( shadeWidth, true );
     }
 
-    public void setShadeWidth ( int shadeWidth, boolean update )
+    public void setShadeWidth ( final int shadeWidth, final boolean update )
     {
         this.shadeWidth = shadeWidth;
         if ( update )
@@ -225,12 +216,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return round;
     }
 
-    public void setRound ( int round )
+    public void setRound ( final int round )
     {
         setRound ( round, true );
     }
 
-    public void setRound ( int round, boolean update )
+    public void setRound ( final int round, final boolean update )
     {
         this.round = round;
         if ( update )
@@ -244,12 +235,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return grayscale;
     }
 
-    public void setGrayscale ( boolean grayscale )
+    public void setGrayscale ( final boolean grayscale )
     {
         setGrayscale ( grayscale, true );
     }
 
-    public void setGrayscale ( boolean grayscale, boolean update )
+    public void setGrayscale ( final boolean grayscale, final boolean update )
     {
         this.grayscale = grayscale;
         if ( update )
@@ -263,12 +254,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return blur;
     }
 
-    public void setBlur ( boolean blur )
+    public void setBlur ( final boolean blur )
     {
         setBlur ( blur, true );
     }
 
-    public void setBlur ( boolean blur, boolean update )
+    public void setBlur ( final boolean blur, final boolean update )
     {
         this.blur = blur;
         if ( update )
@@ -282,12 +273,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return blurFactor;
     }
 
-    public void setBlurFactor ( float blurFactor )
+    public void setBlurFactor ( final float blurFactor )
     {
         setBlurFactor ( blurFactor, true );
     }
 
-    public void setBlurFactor ( float blurFactor, boolean update )
+    public void setBlurFactor ( final float blurFactor, final boolean update )
     {
         this.blurFactor = blurFactor;
         if ( update )
@@ -301,12 +292,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return zoomBlur;
     }
 
-    public void setZoomBlur ( boolean zoomBlur )
+    public void setZoomBlur ( final boolean zoomBlur )
     {
         setZoomBlur ( zoomBlur, true );
     }
 
-    public void setZoomBlur ( boolean zoomBlur, boolean update )
+    public void setZoomBlur ( final boolean zoomBlur, final boolean update )
     {
         this.zoomBlur = zoomBlur;
         if ( update )
@@ -320,12 +311,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return zoomBlurFactor;
     }
 
-    public void setZoomBlurFactor ( float zoomBlurFactor )
+    public void setZoomBlurFactor ( final float zoomBlurFactor )
     {
         setZoomBlurFactor ( zoomBlurFactor, true );
     }
 
-    public void setZoomBlurFactor ( float zoomBlurFactor, boolean update )
+    public void setZoomBlurFactor ( final float zoomBlurFactor, final boolean update )
     {
         this.zoomBlurFactor = zoomBlurFactor;
         if ( update )
@@ -339,12 +330,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return rotationBlur;
     }
 
-    public void setRotationBlur ( boolean rotationBlur )
+    public void setRotationBlur ( final boolean rotationBlur )
     {
         setRotationBlur ( rotationBlur, true );
     }
 
-    public void setRotationBlur ( boolean rotationBlur, boolean update )
+    public void setRotationBlur ( final boolean rotationBlur, final boolean update )
     {
         this.rotationBlur = rotationBlur;
         if ( update )
@@ -358,12 +349,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return rotationBlurFactor;
     }
 
-    public void setRotationBlurFactor ( float rotationBlurFactor )
+    public void setRotationBlurFactor ( final float rotationBlurFactor )
     {
         setRotationBlurFactor ( rotationBlurFactor, true );
     }
 
-    public void setRotationBlurFactor ( float rotationBlurFactor, boolean update )
+    public void setRotationBlurFactor ( final float rotationBlurFactor, final boolean update )
     {
         this.rotationBlurFactor = rotationBlurFactor;
         if ( update )
@@ -377,12 +368,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return blurAlignX;
     }
 
-    public void setBlurAlignX ( float blurAlignX )
+    public void setBlurAlignX ( final float blurAlignX )
     {
         setBlurAlignX ( blurAlignX, true );
     }
 
-    public void setBlurAlignX ( float blurAlignX, boolean update )
+    public void setBlurAlignX ( final float blurAlignX, final boolean update )
     {
         this.blurAlignX = blurAlignX;
         if ( update )
@@ -396,12 +387,12 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return blurAlignY;
     }
 
-    public void setBlurAlignY ( float blurAlignY )
+    public void setBlurAlignY ( final float blurAlignY )
     {
         setBlurAlignY ( blurAlignY, true );
     }
 
-    public void setBlurAlignY ( float blurAlignY, boolean update )
+    public void setBlurAlignY ( final float blurAlignY, final boolean update )
     {
         this.blurAlignY = blurAlignY;
         if ( update )
@@ -412,86 +403,83 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
 
     public void updatePreview ()
     {
-        if ( icon == null )
+        if ( icon != null )
+        {
+            // Source image
+            BufferedImage image = ImageUtils.copyToBufferedImage ( icon );
+
+            // Applying filters
+            if ( grayscale )
+            {
+                new GrayscaleFilter ().filter ( image, image );
+            }
+            if ( blur )
+            {
+                new GaussianFilter ( blurFactor ).filter ( image, image );
+            }
+            if ( zoomBlur && rotationBlur )
+            {
+                new MotionBlurFilter ( 0f, 0f, rotationBlurFactor, zoomBlurFactor, blurAlignX, blurAlignY ).filter ( image, image );
+            }
+            else if ( zoomBlur )
+            {
+                new MotionBlurFilter ( 0f, 0f, 0f, zoomBlurFactor, blurAlignX, blurAlignY ).filter ( image, image );
+            }
+            else if ( rotationBlur )
+            {
+                new MotionBlurFilter ( 0f, 0f, rotationBlurFactor, 0f, blurAlignX, blurAlignY ).filter ( image, image );
+            }
+
+            // Applying rounded corners
+            if ( round > 0 )
+            {
+                image = ImageUtils.cutImage (
+                        image, new RoundRectangle2D.Double ( 0, 0, icon.getIconWidth (), icon.getIconHeight (), round * 2, round * 2 )
+                );
+            }
+
+            // Creating additional effects
+            if ( shadeWidth > 0 || drawGlassLayer || drawBorder )
+            {
+                final Dimension ps = getPreferredSize ();
+                final BufferedImage img = ImageUtils.createCompatibleImage ( ps.width, ps.height, Transparency.TRANSLUCENT );
+                final Graphics2D g2d = img.createGraphics ();
+                GraphicsUtils.setupAntialias ( g2d );
+                final Shape bs = getBorderShape ();
+
+                // Shade
+                GraphicsUtils.drawShade ( g2d, bs, WebDecoratedImageStyle.shadeType, new Color ( 90, 90, 90 ), shadeWidth );
+
+                // Image itself
+                g2d.drawImage ( image, shadeWidth, shadeWidth, null );
+
+                // Glass-styled shade
+                if ( drawGlassLayer )
+                {
+                    g2d.setPaint ( new GradientPaint ( 0, shadeWidth, new Color ( 255, 255, 255, 160 ), 0,
+                            shadeWidth + ( ps.height - shadeWidth * 2 ) / 2, new Color ( 255, 255, 255, 32 ) ) );
+                    g2d.fill ( getGlanceShape () );
+                }
+
+                // Border
+                if ( drawBorder )
+                {
+                    g2d.setPaint ( borderColor );
+                    g2d.draw ( bs );
+                }
+
+                g2d.dispose ();
+                image = img;
+            }
+
+            // Updating preview
+            previewIcon = new ImageIcon ( image );
+        }
+        else
         {
             // No preview available
             previewIcon = null;
-
-            // Updating component view
-            repaint ();
-
-            return;
         }
-
-        // Source image
-        Image image = ImageUtils.copy ( icon.getImage () );
-
-        // Applying filters
-        if ( grayscale )
-        {
-            ImageFilterUtils.applyGrayscaleFilter ( image, image );
-        }
-        if ( blur )
-        {
-            ImageFilterUtils.applyGaussianFilter ( image, image, blurFactor );
-        }
-        if ( zoomBlur && rotationBlur )
-        {
-            ImageFilterUtils.applyMotionBlurFilter ( image, image, 0f, 0f, rotationBlurFactor, zoomBlurFactor, blurAlignX, blurAlignY );
-        }
-        else if ( zoomBlur )
-        {
-            ImageFilterUtils.applyZoomBlurFilter ( image, image, zoomBlurFactor, blurAlignX, blurAlignY );
-        }
-        else if ( rotationBlur )
-        {
-            ImageFilterUtils.applyRotationBlurFilter ( image, image, rotationBlurFactor, blurAlignX, blurAlignY );
-        }
-
-        // Applying rounded corners
-        if ( round > 0 )
-        {
-            image = ImageUtils
-                    .cutImage ( new RoundRectangle2D.Double ( 0, 0, icon.getIconWidth (), icon.getIconHeight (), round * 2, round * 2 ),
-                            image );
-        }
-
-        // Creating additional effects
-        if ( shadeWidth > 0 || drawGlassLayer || drawBorder )
-        {
-            Dimension ps = getPreferredSize ();
-            BufferedImage img = ImageUtils.createCompatibleImage ( ps.width, ps.height, Transparency.TRANSLUCENT );
-            Graphics2D g2d = img.createGraphics ();
-            GraphicsUtils.setupAntialias ( g2d );
-            Shape bs = getBorderShape ();
-
-            // Shade
-            GraphicsUtils.drawShade ( g2d, bs, WebDecoratedImageStyle.shadeType, new Color ( 90, 90, 90 ), shadeWidth );
-
-            // Image itself
-            g2d.drawImage ( image, shadeWidth, shadeWidth, null );
-
-            // Glass-styled shade
-            if ( drawGlassLayer )
-            {
-                g2d.setPaint ( new GradientPaint ( 0, shadeWidth, new Color ( 255, 255, 255, 160 ), 0,
-                        shadeWidth + ( ps.height - shadeWidth * 2 ) / 2, new Color ( 255, 255, 255, 32 ) ) );
-                g2d.fill ( getGlanceShape () );
-            }
-
-            // Border
-            if ( drawBorder )
-            {
-                g2d.setPaint ( borderColor );
-                g2d.draw ( bs );
-            }
-
-            g2d.dispose ();
-            image = img;
-        }
-
-        // Updating preview
-        previewIcon = new ImageIcon ( image );
 
         // Updating component view
         repaint ();
@@ -499,16 +487,18 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
 
     private Shape getGlanceShape ()
     {
-        Dimension ps = getPreferredSize ();
+        final Shape shape;
+        final Dimension ps = getPreferredSize ();
         if ( round > 0 )
         {
-            return new RoundRectangle2D.Double ( shadeWidth, shadeWidth, ps.width - shadeWidth * 2, ( ps.height - shadeWidth * 2 ) / 2,
+            shape = new RoundRectangle2D.Double ( shadeWidth, shadeWidth, ps.width - shadeWidth * 2, ( ps.height - shadeWidth * 2 ) / 2,
                     round * 2, round * 2 );
         }
         else
         {
-            return new Rectangle ( shadeWidth, shadeWidth, ps.width - shadeWidth * 2, ( ps.height - shadeWidth * 2 ) / 2 );
+            shape = new Rectangle ( shadeWidth, shadeWidth, ps.width - shadeWidth * 2, ( ps.height - shadeWidth * 2 ) / 2 );
         }
+        return shape;
     }
 
     private Shape getBorderShape ()
@@ -516,9 +506,9 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         return getBorderShape ( 0, 0 );
     }
 
-    private Shape getBorderShape ( int x, int y )
+    private Shape getBorderShape ( final int x, final int y )
     {
-        Dimension ps = getPreferredSize ();
+        final Dimension ps = getPreferredSize ();
         if ( round > 0 )
         {
             return new RoundRectangle2D.Double ( x + shadeWidth, y + shadeWidth, ps.width - shadeWidth * 2 - 1,
@@ -531,23 +521,23 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
     }
 
     @Override
-    protected void paintComponent ( Graphics g )
+    protected void paintComponent ( final Graphics g )
     {
         super.paintComponent ( g );
 
         // Painting preview
         if ( previewIcon != null )
         {
-            Point location = getPreviewLocation ();
+            final Point location = getPreviewLocation ();
             g.drawImage ( previewIcon.getImage (), location.x, location.y, null );
         }
     }
 
     private Point getPreviewLocation ()
     {
-        int width = previewIcon.getIconWidth ();
-        int height = previewIcon.getIconHeight ();
-        int x;
+        final int width = previewIcon.getIconWidth ();
+        final int height = previewIcon.getIconHeight ();
+        final int x;
         if ( horizontalAlignment == LEFT )
         {
             x = 0;
@@ -560,7 +550,7 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
         {
             x = getWidth () / 2 - width / 2;
         }
-        int y;
+        final int y;
         if ( verticalAlignment == TOP )
         {
             y = 0;
@@ -579,20 +569,35 @@ public class WebDecoratedImage extends JComponent implements SwingConstants, Sha
     @Override
     public Dimension getPreferredSize ()
     {
+        final Dimension ps;
         if ( icon != null )
         {
-            return new Dimension ( shadeWidth * 2 + icon.getIconWidth (), shadeWidth * 2 + icon.getIconHeight () );
+            ps = new Dimension ( shadeWidth * 2 + icon.getIconWidth (), shadeWidth * 2 + icon.getIconHeight () );
         }
         else
         {
-            return new Dimension ( 0, 0 );
+            ps = new Dimension ( 0, 0 );
         }
+        return ps;
+    }
+
+    /*@NotNull
+    @Override
+    public Shape getShape ()
+    {
+        final Point location = getPreviewLocation ();
+        return getBorderShape ( location.x, location.y );
     }
 
     @Override
-    public Shape provideShape ()
+    public boolean isShapeDetectionEnabled ()
     {
-        Point location = getPreviewLocation ();
-        return getBorderShape ( location.x, location.y );
+        return false;
     }
+
+    @Override
+    public void setShapeDetectionEnabled ( final boolean enabled )
+    {
+        throw new UnsupportedOperationException ( "Shape detection is not yet supported for WebDecoratedImage" );
+    }*/
 }

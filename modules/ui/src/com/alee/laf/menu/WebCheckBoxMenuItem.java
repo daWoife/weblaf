@@ -17,48 +17,57 @@
 
 package com.alee.laf.menu;
 
-import com.alee.extended.painter.Painter;
-import com.alee.laf.WebLookAndFeel;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
 import com.alee.managers.hotkey.HotkeyData;
-import com.alee.managers.language.LanguageManager;
-import com.alee.managers.language.LanguageMethods;
-import com.alee.managers.language.updaters.LanguageUpdater;
-import com.alee.managers.log.Log;
-import com.alee.managers.settings.DefaultValue;
-import com.alee.managers.settings.SettingsManager;
+import com.alee.managers.language.*;
+import com.alee.managers.settings.Configuration;
 import com.alee.managers.settings.SettingsMethods;
 import com.alee.managers.settings.SettingsProcessor;
-import com.alee.utils.ReflectUtils;
+import com.alee.managers.settings.UISettingsManager;
+import com.alee.managers.style.*;
+import com.alee.painter.Painter;
+import com.alee.painter.PainterSupport;
 import com.alee.utils.SwingUtils;
-import com.alee.utils.swing.FontMethods;
+import com.alee.utils.swing.extensions.FontMethods;
+import com.alee.utils.swing.extensions.FontMethodsImpl;
+import com.alee.utils.swing.extensions.SizeMethods;
+import com.alee.utils.swing.extensions.SizeMethodsImpl;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * This JCheckBoxMenuItem extension class provides a direct access to WebCheckBoxMenuItemUI methods.
+ * {@link JCheckBoxMenuItem} extension class.
+ * It contains various useful methods to simplify core component usage.
+ *
+ * This component should never be used with a non-Web UIs as it might cause an unexpected behavior.
+ * You could still use that component even if WebLaF is not your application LaF as this component will use Web-UI in any case.
  *
  * @author Mikle Garin
+ * @see JCheckBoxMenuItem
+ * @see WebCheckBoxMenuItemUI
+ * @see CheckBoxMenuItemPainter
  */
-
-public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMethods, SettingsMethods, FontMethods<WebCheckBoxMenuItem>
+public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements Styleable, LanguageMethods, LanguageEventMethods, SettingsMethods,
+        FontMethods<WebCheckBoxMenuItem>, SizeMethods<WebCheckBoxMenuItem>
 {
     /**
      * Constructs new checkbox menu item.
      */
     public WebCheckBoxMenuItem ()
     {
-        super ();
+        this ( StyleId.auto );
     }
 
     /**
      * Constructs new checkbox menu item using the specified settings.
      *
-     * @param a menu item action
+     * @param action menu item action
      */
-    public WebCheckBoxMenuItem ( final Action a )
+    public WebCheckBoxMenuItem ( final Action action )
     {
-        super ( a );
+        this ( StyleId.auto, action );
     }
 
     /**
@@ -68,7 +77,7 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final Icon icon )
     {
-        super ( icon );
+        this ( StyleId.auto, icon );
     }
 
     /**
@@ -78,7 +87,7 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final String text )
     {
-        super ( text );
+        this ( StyleId.auto, text );
     }
 
     /**
@@ -89,8 +98,7 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final String text, final KeyStroke accelerator )
     {
-        super ( text );
-        setAccelerator ( accelerator );
+        this ( StyleId.auto, text, accelerator );
     }
 
     /**
@@ -101,19 +109,18 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final String text, final HotkeyData accelerator )
     {
-        super ( text );
-        setAccelerator ( accelerator );
+        this ( StyleId.auto, text, accelerator );
     }
 
     /**
      * Constructs new checkbox menu item using the specified settings.
      *
-     * @param text menu item text
-     * @param b    whether this checkbox item is selected or not
+     * @param text     menu item text
+     * @param selected whether this checkbox item is selected or not
      */
-    public WebCheckBoxMenuItem ( final String text, final boolean b )
+    public WebCheckBoxMenuItem ( final String text, final boolean selected )
     {
-        super ( text, b );
+        this ( StyleId.auto, text, selected );
     }
 
     /**
@@ -124,19 +131,19 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final String text, final Icon icon )
     {
-        super ( text, icon );
+        this ( StyleId.auto, text, icon );
     }
 
     /**
      * Constructs new checkbox menu item using the specified settings.
      *
-     * @param text menu item text
-     * @param icon menu item icon
-     * @param b    whether this checkbox item is selected or not
+     * @param text     menu item text
+     * @param icon     menu item icon
+     * @param selected whether this checkbox item is selected or not
      */
-    public WebCheckBoxMenuItem ( final String text, final Icon icon, final boolean b )
+    public WebCheckBoxMenuItem ( final String text, final Icon icon, final boolean selected )
     {
-        super ( text, icon, b );
+        this ( StyleId.auto, text, icon, selected );
     }
 
     /**
@@ -148,8 +155,7 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final String text, final Icon icon, final KeyStroke accelerator )
     {
-        super ( text, icon );
-        setAccelerator ( accelerator );
+        this ( StyleId.auto, text, icon, accelerator );
     }
 
     /**
@@ -157,13 +163,12 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      *
      * @param text        menu item text
      * @param icon        menu item icon
-     * @param b           whether this checkbox item is selected or not
+     * @param selected    whether this checkbox item is selected or not
      * @param accelerator menu item accelerator
      */
-    public WebCheckBoxMenuItem ( final String text, final Icon icon, final boolean b, final KeyStroke accelerator )
+    public WebCheckBoxMenuItem ( final String text, final Icon icon, final boolean selected, final KeyStroke accelerator )
     {
-        super ( text, icon, b );
-        setAccelerator ( accelerator );
+        this ( StyleId.auto, text, icon, selected, accelerator );
     }
 
     /**
@@ -175,8 +180,7 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      */
     public WebCheckBoxMenuItem ( final String text, final Icon icon, final HotkeyData accelerator )
     {
-        super ( text, icon );
-        setAccelerator ( accelerator );
+        this ( StyleId.auto, text, icon, accelerator );
     }
 
     /**
@@ -184,682 +188,744 @@ public class WebCheckBoxMenuItem extends JCheckBoxMenuItem implements LanguageMe
      *
      * @param text        menu item text
      * @param icon        menu item icon
-     * @param b           whether this checkbox item is selected or not
+     * @param selected    whether this checkbox item is selected or not
      * @param accelerator menu item accelerator
      */
-    public WebCheckBoxMenuItem ( final String text, final Icon icon, final boolean b, final HotkeyData accelerator )
+    public WebCheckBoxMenuItem ( final String text, final Icon icon, final boolean selected, final HotkeyData accelerator )
     {
-        super ( text, icon, b );
+        this ( StyleId.auto, text, icon, selected, accelerator );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id     {@link StyleId}
+     * @param action menu item action
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final Action action )
+    {
+        this ( id, null, null, false, ( KeyStroke ) null );
+        setAction ( action );
+    }
+
+    /**
+     * Constructs new checkbox menu item.
+     *
+     * @param id {@link StyleId}
+     */
+    public WebCheckBoxMenuItem ( final StyleId id )
+    {
+        this ( id, null, null, false, ( KeyStroke ) null );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id   {@link StyleId}
+     * @param icon menu item icon
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final Icon icon )
+    {
+        this ( id, null, icon, false, ( KeyStroke ) null );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id   {@link StyleId}
+     * @param text menu item text
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text )
+    {
+        this ( id, text, null, false, ( KeyStroke ) null );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id          {@link StyleId}
+     * @param text        menu item text
+     * @param accelerator menu item accelerator
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final KeyStroke accelerator )
+    {
+        this ( id, text, null, false, accelerator );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id          {@link StyleId}
+     * @param text        menu item text
+     * @param accelerator menu item accelerator
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final HotkeyData accelerator )
+    {
+        this ( id, text, null, false, accelerator );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id       {@link StyleId}
+     * @param text     menu item text
+     * @param selected whether this checkbox item is selected or not
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final boolean selected )
+    {
+        this ( id, text, null, selected, ( KeyStroke ) null );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id   {@link StyleId}
+     * @param text menu item text
+     * @param icon menu item icon
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final Icon icon )
+    {
+        this ( id, text, icon, false, ( KeyStroke ) null );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id       {@link StyleId}
+     * @param text     menu item text
+     * @param icon     menu item icon
+     * @param selected whether this checkbox item is selected or not
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final Icon icon, final boolean selected )
+    {
+        this ( id, text, icon, selected, ( KeyStroke ) null );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id          {@link StyleId}
+     * @param text        menu item text
+     * @param icon        menu item icon
+     * @param accelerator menu item accelerator
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final Icon icon, final KeyStroke accelerator )
+    {
+        this ( id, text, icon, false, accelerator );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id          {@link StyleId}
+     * @param text        menu item text
+     * @param icon        menu item icon
+     * @param accelerator menu item accelerator
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final Icon icon, final HotkeyData accelerator )
+    {
+        this ( id, text, icon, false, accelerator );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id          {@link StyleId}
+     * @param text        menu item text
+     * @param icon        menu item icon
+     * @param selected    whether this checkbox item is selected or not
+     * @param accelerator menu item accelerator
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final Icon icon, final boolean selected,
+                                 final HotkeyData accelerator )
+    {
+        this ( id, text, icon, selected, SwingUtils.getAccelerator ( accelerator ) );
+    }
+
+    /**
+     * Constructs new checkbox menu item using the specified settings.
+     *
+     * @param id          {@link StyleId}
+     * @param text        menu item text
+     * @param icon        menu item icon
+     * @param selected    whether this checkbox item is selected or not
+     * @param accelerator menu item accelerator
+     */
+    public WebCheckBoxMenuItem ( final StyleId id, final String text, final Icon icon, final boolean selected, final KeyStroke accelerator )
+    {
+        super ( text, icon, selected );
         setAccelerator ( accelerator );
+        setStyleId ( id );
+    }
+
+    @Override
+    protected void init ( final String text, final Icon icon )
+    {
+        super.init ( UILanguageManager.getInitialText ( text ), icon );
+        UILanguageManager.registerInitialLanguage ( this, text );
     }
 
     /**
      * Sets the key combination which invokes the menu item's action listeners without navigating the menu hierarchy.
      *
-     * @param hotkey hotkey data
+     * @param accelerator hotkey data
      */
-    public void setAccelerator ( final HotkeyData hotkey )
+    public void setAccelerator ( final HotkeyData accelerator )
     {
-        SwingUtils.setAccelerator ( this, hotkey );
+        setAccelerator ( SwingUtils.getAccelerator ( accelerator ) );
     }
 
-    /**
-     * Returns menu item margin.
-     *
-     * @return menu item margin
-     */
+    @NotNull
+    @Override
+    public StyleId getDefaultStyleId ()
+    {
+        return StyleId.checkboxmenuitem;
+    }
+
+    @NotNull
+    @Override
+    public StyleId getStyleId ()
+    {
+        return StyleManager.getStyleId ( this );
+    }
+
+    @NotNull
+    @Override
+    public StyleId setStyleId ( @NotNull final StyleId id )
+    {
+        return StyleManager.setStyleId ( this, id );
+    }
+
+    @NotNull
+    @Override
+    public StyleId resetStyleId ()
+    {
+        return StyleManager.resetStyleId ( this );
+    }
+
+    @NotNull
+    @Override
+    public Skin getSkin ()
+    {
+        return StyleManager.getSkin ( this );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin )
+    {
+        return StyleManager.setSkin ( this, skin );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin, final boolean recursively )
+    {
+        return StyleManager.setSkin ( this, skin, recursively );
+    }
+
+    @Nullable
+    @Override
+    public Skin resetSkin ()
+    {
+        return StyleManager.resetSkin ( this );
+    }
+
+    @Override
+    public void addStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.addStyleListener ( this, listener );
+    }
+
+    @Override
+    public void removeStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.removeStyleListener ( this, listener );
+    }
+
+    @Nullable
+    @Override
+    public Painter getCustomPainter ()
+    {
+        return StyleManager.getCustomPainter ( this );
+    }
+
+    @Nullable
+    @Override
+    public Painter setCustomPainter ( @NotNull final Painter painter )
+    {
+        return StyleManager.setCustomPainter ( this, painter );
+    }
+
+    @Override
+    public boolean resetCustomPainter ()
+    {
+        return StyleManager.resetCustomPainter ( this );
+    }
+
+    @NotNull
+    @Override
+    public Shape getPainterShape ()
+    {
+        return PainterSupport.getShape ( this );
+    }
+
+    @Override
+    public boolean isShapeDetectionEnabled ()
+    {
+        return PainterSupport.isShapeDetectionEnabled ( this );
+    }
+
+    @Override
+    public void setShapeDetectionEnabled ( final boolean enabled )
+    {
+        PainterSupport.setShapeDetectionEnabled ( this, enabled );
+    }
+
+    @Nullable
     @Override
     public Insets getMargin ()
     {
-        return getWebUI ().getMargin ();
+        return PainterSupport.getMargin ( this );
     }
 
-    /**
-     * Sets menu item margin.
-     *
-     * @param margin new menu item margin
-     */
     @Override
-    public void setMargin ( final Insets margin )
+    public void setMargin ( final int margin )
     {
-        getWebUI ().setMargin ( margin );
+        PainterSupport.setMargin ( this, margin );
     }
 
-    /**
-     * Returns spacing between menu item content and its left/right borders.
-     *
-     * @return spacing between menu item content and its left/right borders
-     */
-    public int getSideSpacing ()
-    {
-        return getWebUI ().getSideSpacing ();
-    }
-
-    /**
-     * Sets spacing between menu item content and its left/right borders
-     *
-     * @param sideSpacing spacing between menu item content and its left/right borders
-     */
-    public void setSideSpacing ( final int sideSpacing )
-    {
-        getWebUI ().setSideSpacing ( sideSpacing );
-    }
-
-    /**
-     * Returns disabled menu item foreground.
-     *
-     * @return disabled menu item foreground
-     */
-    public Color getDisabledFg ()
-    {
-        return getWebUI ().getDisabledFg ();
-    }
-
-    /**
-     * Sets disabled menu item foreground.
-     *
-     * @param foreground new disabled menu item foreground
-     */
-    public void setDisabledFg ( final Color foreground )
-    {
-        getWebUI ().setDisabledFg ( foreground );
-    }
-
-    /**
-     * Returns top background color for selected item.
-     *
-     * @return top background color for selected item
-     */
-    public Color getSelectedTopBg ()
-    {
-        return getWebUI ().getSelectedTopBg ();
-    }
-
-    /**
-     * Sets top background color for selected item.
-     *
-     * @param background new top background color for selected item
-     */
-    public void setSelectedTopBg ( final Color background )
-    {
-        getWebUI ().setSelectedTopBg ( background );
-    }
-
-    /**
-     * Returns bottom background color for selected item.
-     *
-     * @return bottom background color for selected item
-     */
-    public Color getSelectedBottomBg ()
-    {
-        return getWebUI ().getSelectedBottomBg ();
-    }
-
-    /**
-     * Sets bottom background color for selected item.
-     *
-     * @param background new bottom background color for selected item
-     */
-    public void setSelectedBottomBg ( final Color background )
-    {
-        getWebUI ().setSelectedBottomBg ( background );
-    }
-
-    /**
-     * Returns accelerator text background.
-     *
-     * @return accelerator text background
-     */
-    public Color getAcceleratorBg ()
-    {
-        return getWebUI ().getAcceleratorBg ();
-    }
-
-    /**
-     * Sets accelerator text background.
-     *
-     * @param background new accelerator text background
-     */
-    public void setAcceleratorBg ( final Color background )
-    {
-        getWebUI ().setAcceleratorBg ( background );
-    }
-
-    /**
-     * Returns accelerator foreground.
-     *
-     * @return accelerator foreground
-     */
-    public Color getAcceleratorFg ()
-    {
-        return getWebUI ().getAcceleratorFg ();
-    }
-
-    /**
-     * Sets accelerator foreground.
-     *
-     * @param foreground new accelerator foreground
-     */
-    public void setAcceleratorFg ( final Color foreground )
-    {
-        getWebUI ().setAcceleratorFg ( foreground );
-    }
-
-    /**
-     * Returns disabled accelerator foreground.
-     *
-     * @return disabled accelerator foreground
-     */
-    public Color getAcceleratorDisabledFg ()
-    {
-        return getWebUI ().getAcceleratorDisabledFg ();
-    }
-
-    /**
-     * Sets disabled accelerator foreground.
-     *
-     * @param foreground new disabled accelerator foreground
-     */
-    public void setAcceleratorDisabledFg ( final Color foreground )
-    {
-        getWebUI ().setAcceleratorDisabledFg ( foreground );
-    }
-
-    /**
-     * Returns gap between menu item icon/text and accelerator.
-     *
-     * @return gap between menu item icon/text and accelerator
-     */
-    public int getAcceleratorGap ()
-    {
-        return getWebUI ().getAcceleratorGap ();
-    }
-
-    /**
-     * Sets gap between menu icon/text and accelerator.
-     *
-     * @param gap new gap between menu icon/text and accelerator
-     */
-    public void setAcceleratorGap ( final int gap )
-    {
-        getWebUI ().setAcceleratorGap ( gap );
-    }
-
-    /**
-     * Returns whether should align all item texts to a single vertical line within single popup menu or not.
-     *
-     * @return true if should align all item texts to a single vertical line within single popup menu, false otherwise
-     */
-    public boolean isAlignTextToMenuIcons ()
-    {
-        return getWebUI ().isAlignTextToMenuIcons ();
-    }
-
-    /**
-     * Sets whether should align all item texts to a single vertical line within single popup menu or not.
-     *
-     * @param align whether should align all item texts to a single vertical line within single popup menu or not
-     */
-    public void setAlignTextToMenuIcons ( final boolean align )
-    {
-        getWebUI ().setAlignTextToMenuIcons ( align );
-    }
-
-    /**
-     * Returns icon alignment.
-     *
-     * @return icon alignment
-     */
-    public int getIconAlignment ()
-    {
-        return getWebUI ().getIconAlignment ();
-    }
-
-    /**
-     * Sets icon alignment
-     *
-     * @param alignment new icon alignment
-     */
-    public void setIconAlignment ( final int alignment )
-    {
-        getWebUI ().setIconAlignment ( alignment );
-    }
-
-    /**
-     * Returns menu item painter.
-     *
-     * @return menu item painter
-     */
-    public Painter getPainter ()
-    {
-        return getWebUI ().getPainter ();
-    }
-
-    /**
-     * Sets menu item painter.
-     *
-     * @param painter new menu item painter
-     */
-    public void setPainter ( final Painter painter )
-    {
-        getWebUI ().setPainter ( painter );
-    }
-
-    /**
-     * Returns checkbox menu item check color.
-     *
-     * @return checkbox menu item check color
-     */
-    public Color getCheckColor ()
-    {
-        return getWebUI ().getCheckColor ();
-    }
-
-    /**
-     * Sets checkbox menu item check color.
-     *
-     * @param color checkbox menu item check color
-     */
-    public void setCheckColor ( final Color color )
-    {
-        getWebUI ().setCheckColor ( color );
-    }
-
-    /**
-     * Returns Web-UI applied to this class.
-     *
-     * @return Web-UI applied to this class
-     */
-    public WebCheckBoxMenuItemUI getWebUI ()
-    {
-        return ( WebCheckBoxMenuItemUI ) getUI ();
-    }
-
-    /**
-     * Installs a Web-UI into this component.
-     */
     @Override
-    public void updateUI ()
+    public void setMargin ( final int top, final int left, final int bottom, final int right )
     {
-        if ( getUI () == null || !( getUI () instanceof WebCheckBoxMenuItemUI ) )
-        {
-            try
-            {
-                setUI ( ( WebCheckBoxMenuItemUI ) ReflectUtils.createInstance ( WebLookAndFeel.checkBoxMenuItemUI ) );
-            }
-            catch ( final Throwable e )
-            {
-                Log.error ( this, e );
-                setUI ( new WebCheckBoxMenuItemUI () );
-            }
-        }
-        else
-        {
-            setUI ( getUI () );
-        }
+        PainterSupport.setMargin ( this, top, left, bottom, right );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setLanguage ( final String key, final Object... data )
+    public void setMargin ( @Nullable final Insets margin )
     {
-        LanguageManager.registerComponent ( this, key, data );
+        PainterSupport.setMargin ( this, margin );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public void updateLanguage ( final Object... data )
+    public Insets getPadding ()
     {
-        LanguageManager.updateComponent ( this, data );
+        return PainterSupport.getPadding ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void updateLanguage ( final String key, final Object... data )
+    public void setPadding ( final int padding )
     {
-        LanguageManager.updateComponent ( this, key, data );
+        PainterSupport.setPadding ( this, padding );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void setPadding ( final int top, final int left, final int bottom, final int right )
+    {
+        PainterSupport.setPadding ( this, top, left, bottom, right );
+    }
+
+    @Override
+    public void setPadding ( @Nullable final Insets padding )
+    {
+        PainterSupport.setPadding ( this, padding );
+    }
+
+    @Nullable
+    @Override
+    public String getLanguage ()
+    {
+        return UILanguageManager.getComponentKey ( this );
+    }
+
+    @Override
+    public void setLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.registerComponent ( this, key, data );
+    }
+
+    @Override
+    public void updateLanguage ( @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, data );
+    }
+
+    @Override
+    public void updateLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, key, data );
+    }
+
     @Override
     public void removeLanguage ()
     {
-        LanguageManager.unregisterComponent ( this );
+        UILanguageManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isLanguageSet ()
     {
-        return LanguageManager.isRegisteredComponent ( this );
+        return UILanguageManager.isRegisteredComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setLanguageUpdater ( final LanguageUpdater updater )
+    public void setLanguageUpdater ( @NotNull final LanguageUpdater updater )
     {
-        LanguageManager.registerLanguageUpdater ( this, updater );
+        UILanguageManager.registerLanguageUpdater ( this, updater );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeLanguageUpdater ()
     {
-        LanguageManager.unregisterLanguageUpdater ( this );
+        UILanguageManager.unregisterLanguageUpdater ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key )
+    public void addLanguageListener ( @NotNull final LanguageListener listener )
     {
-        SettingsManager.registerComponent ( this, key );
+        UILanguageManager.addLanguageListener ( getRootPane (), listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String key, final Class<T> defaultValueClass )
+    public void removeLanguageListener ( @NotNull final LanguageListener listener )
     {
-        SettingsManager.registerComponent ( this, key, defaultValueClass );
+        UILanguageManager.removeLanguageListener ( getRootPane (), listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final Object defaultValue )
+    public void removeLanguageListeners ()
     {
-        SettingsManager.registerComponent ( this, key, defaultValue );
+        UILanguageManager.removeLanguageListeners ( getRootPane () );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key )
+    public void addDictionaryListener ( @NotNull final DictionaryListener listener )
     {
-        SettingsManager.registerComponent ( this, group, key );
+        UILanguageManager.addDictionaryListener ( getRootPane (), listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String group, final String key, final Class<T> defaultValueClass )
+    public void removeDictionaryListener ( @NotNull final DictionaryListener listener )
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValueClass );
+        UILanguageManager.removeDictionaryListener ( getRootPane (), listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key, final Object defaultValue )
+    public void removeDictionaryListeners ()
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValue );
+        UILanguageManager.removeDictionaryListeners ( getRootPane () );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void registerSettings ( final Configuration configuration )
     {
-        SettingsManager.registerComponent ( this, key, loadInitialSettings, applySettingsChanges );
+        UISettingsManager.registerComponent ( this, configuration );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String key, final Class<T> defaultValueClass,
-                                                            final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void registerSettings ( final SettingsProcessor processor )
     {
-        SettingsManager.registerComponent ( this, key, defaultValueClass, loadInitialSettings, applySettingsChanges );
+        UISettingsManager.registerComponent ( this, processor );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerSettings ( final String key, final Object defaultValue, final boolean loadInitialSettings,
-                                   final boolean applySettingsChanges )
-    {
-        SettingsManager.registerComponent ( this, key, defaultValue, loadInitialSettings, applySettingsChanges );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public <T extends DefaultValue> void registerSettings ( final String group, final String key, final Class<T> defaultValueClass,
-                                                            final boolean loadInitialSettings, final boolean applySettingsChanges )
-    {
-        SettingsManager.registerComponent ( this, group, key, defaultValueClass, loadInitialSettings, applySettingsChanges );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerSettings ( final String group, final String key, final Object defaultValue, final boolean loadInitialSettings,
-                                   final boolean applySettingsChanges )
-    {
-        SettingsManager.registerComponent ( this, group, key, defaultValue, loadInitialSettings, applySettingsChanges );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerSettings ( final SettingsProcessor settingsProcessor )
-    {
-        SettingsManager.registerComponent ( this, settingsProcessor );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void unregisterSettings ()
     {
-        SettingsManager.unregisterComponent ( this );
+        UISettingsManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void loadSettings ()
     {
-        SettingsManager.loadComponentSettings ( this );
+        UISettingsManager.loadSettings ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void saveSettings ()
     {
-        SettingsManager.saveComponentSettings ( this );
+        UISettingsManager.saveSettings ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setPlainFont ()
     {
-        return SwingUtils.setPlainFont ( this );
+        return FontMethodsImpl.setPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setPlainFont ( final boolean apply )
     {
-        return SwingUtils.setPlainFont ( this, apply );
+        return FontMethodsImpl.setPlainFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isPlainFont ()
     {
-        return SwingUtils.isPlainFont ( this );
+        return FontMethodsImpl.isPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setBoldFont ()
     {
-        return SwingUtils.setBoldFont ( this );
+        return FontMethodsImpl.setBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setBoldFont ( final boolean apply )
     {
-        return SwingUtils.setBoldFont ( this, apply );
+        return FontMethodsImpl.setBoldFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isBoldFont ()
     {
-        return SwingUtils.isBoldFont ( this );
+        return FontMethodsImpl.isBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setItalicFont ()
     {
-        return SwingUtils.setItalicFont ( this );
+        return FontMethodsImpl.setItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setItalicFont ( final boolean apply )
     {
-        return SwingUtils.setItalicFont ( this, apply );
+        return FontMethodsImpl.setItalicFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isItalicFont ()
     {
-        return SwingUtils.isItalicFont ( this );
+        return FontMethodsImpl.isItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setFontStyle ( final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontStyle ( this, bold, italic );
+        return FontMethodsImpl.setFontStyle ( this, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setFontStyle ( final int style )
     {
-        return SwingUtils.setFontStyle ( this, style );
+        return FontMethodsImpl.setFontStyle ( this, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setFontSize ( final int fontSize )
     {
-        return SwingUtils.setFontSize ( this, fontSize );
+        return FontMethodsImpl.setFontSize ( this, fontSize );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem changeFontSize ( final int change )
     {
-        return SwingUtils.changeFontSize ( this, change );
+        return FontMethodsImpl.changeFontSize ( this, change );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getFontSize ()
     {
-        return SwingUtils.getFontSize ( this );
+        return FontMethodsImpl.getFontSize ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setFontSizeAndStyle ( final int fontSize, final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, bold, italic );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setFontSizeAndStyle ( final int fontSize, final int style )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, style );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCheckBoxMenuItem setFontName ( final String fontName )
     {
-        return SwingUtils.setFontName ( this, fontName );
+        return FontMethodsImpl.setFontName ( this, fontName );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getFontName ()
     {
-        return SwingUtils.getFontName ( this );
+        return FontMethodsImpl.getFontName ( this );
+    }
+
+    @Override
+    public int getPreferredWidth ()
+    {
+        return SizeMethodsImpl.getPreferredWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setPreferredWidth ( final int preferredWidth )
+    {
+        return SizeMethodsImpl.setPreferredWidth ( this, preferredWidth );
+    }
+
+    @Override
+    public int getPreferredHeight ()
+    {
+        return SizeMethodsImpl.getPreferredHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setPreferredHeight ( final int preferredHeight )
+    {
+        return SizeMethodsImpl.setPreferredHeight ( this, preferredHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getPreferredSize ()
+    {
+        return SizeMethodsImpl.getPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalPreferredSize ()
+    {
+        return SizeMethodsImpl.getOriginalPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setPreferredSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setPreferredSize ( this, width, height );
+    }
+
+    @Override
+    public int getMaximumWidth ()
+    {
+        return SizeMethodsImpl.getMaximumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setMaximumWidth ( final int maximumWidth )
+    {
+        return SizeMethodsImpl.setMaximumWidth ( this, maximumWidth );
+    }
+
+    @Override
+    public int getMaximumHeight ()
+    {
+        return SizeMethodsImpl.getMaximumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setMaximumHeight ( final int maximumHeight )
+    {
+        return SizeMethodsImpl.setMaximumHeight ( this, maximumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMaximumSize ()
+    {
+        return SizeMethodsImpl.getMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMaximumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setMaximumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMaximumSize ( this, width, height );
+    }
+
+    @Override
+    public int getMinimumWidth ()
+    {
+        return SizeMethodsImpl.getMinimumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setMinimumWidth ( final int minimumWidth )
+    {
+        return SizeMethodsImpl.setMinimumWidth ( this, minimumWidth );
+    }
+
+    @Override
+    public int getMinimumHeight ()
+    {
+        return SizeMethodsImpl.getMinimumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setMinimumHeight ( final int minimumHeight )
+    {
+        return SizeMethodsImpl.setMinimumHeight ( this, minimumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMinimumSize ()
+    {
+        return SizeMethodsImpl.getMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMinimumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebCheckBoxMenuItem setMinimumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMinimumSize ( this, width, height );
+    }
+
+    /**
+     * Returns the look and feel (LaF) object that renders this component.
+     *
+     * @return the {@link WebCheckBoxMenuItemUI} object that renders this component
+     */
+    @Override
+    public WebCheckBoxMenuItemUI getUI ()
+    {
+        return ( WebCheckBoxMenuItemUI ) super.getUI ();
+    }
+
+    /**
+     * Sets the LaF object that renders this component.
+     *
+     * @param ui {@link WebCheckBoxMenuItemUI}
+     */
+    public void setUI ( final WebCheckBoxMenuItemUI ui )
+    {
+        super.setUI ( ui );
+    }
+
+    @Override
+    public void updateUI ()
+    {
+        StyleManager.getDescriptor ( this ).updateUI ( this );
+    }
+
+    @Override
+    public String getUIClassID ()
+    {
+        return StyleManager.getDescriptor ( this ).getUIClassId ();
     }
 }

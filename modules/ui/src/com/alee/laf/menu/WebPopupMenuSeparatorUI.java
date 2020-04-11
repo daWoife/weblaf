@@ -17,162 +17,105 @@
 
 package com.alee.laf.menu;
 
-import com.alee.laf.WebLookAndFeel;
-import com.alee.utils.GraphicsUtils;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicPopupMenuSeparatorUI;
 import java.awt.*;
 
 /**
- * Custom UI for JPopupMenu.Separator component.
+ * Custom UI for {@link javax.swing.JPopupMenu.Separator} component.
  *
+ * @param <C> component type
  * @author Mikle Garin
  */
-
-public class WebPopupMenuSeparatorUI extends BasicPopupMenuSeparatorUI
+public class WebPopupMenuSeparatorUI<C extends JPopupMenu.Separator> extends WPopupMenuSeparatorUI<C>
 {
     /**
-     * Style settings.
-     */
-    protected Color color = WebPopupMenuSeparatorStyle.color;
-    protected Stroke stroke = WebPopupMenuSeparatorStyle.stroke;
-    protected int spacing = WebPopupMenuSeparatorStyle.spacing;
-    protected int sideSpacing = WebPopupMenuSeparatorStyle.sideSpacing;
-
-    /**
-     * Returns an instance of the WebPopupMenuSeparatorUI for the specified component.
-     * This tricky method is used by UIManager to create component UIs when needed.
+     * Returns an instance of the {@link WebPopupMenuSeparatorUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
      *
      * @param c component that will use UI instance
-     * @return instance of the WebPopupMenuSeparatorUI
+     * @return instance of the {@link WebPopupMenuSeparatorUI}
      */
-    @SuppressWarnings ("UnusedParameters")
-    public static ComponentUI createUI ( final JComponent c )
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebPopupMenuSeparatorUI ();
     }
 
-    /**
-     * Installs UI in the specified component.
-     *
-     * @param c component for this UI
-     */
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
+        // Installing UI
         super.installUI ( c );
-        LookAndFeel.installProperty ( c, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
+
+        // Applying skin
+        StyleManager.installSkin ( separator );
     }
 
-    /**
-     * Returns separator color.
-     *
-     * @return separator color
-     */
-    public Color getColor ()
-    {
-        return color;
-    }
-
-    /**
-     * Sets separator color.
-     *
-     * @param color new separator color
-     */
-    public void setColor ( final Color color )
-    {
-        this.color = color;
-    }
-
-    /**
-     * Returns separator stroke.
-     *
-     * @return separator stroke
-     */
-    public Stroke getStroke ()
-    {
-        return stroke;
-    }
-
-    /**
-     * Sets separator stroke.
-     *
-     * @param stroke new separator stroke
-     */
-    public void setStroke ( final Stroke stroke )
-    {
-        this.stroke = stroke;
-    }
-
-    /**
-     * Returns separator upper and lower spacing.
-     *
-     * @return separator upper and lower spacing
-     */
-    public int getSpacing ()
-    {
-        return spacing;
-    }
-
-    /**
-     * Sets separator upper and lower spacing.
-     *
-     * @param spacing new separator upper and lower spacing
-     */
-    public void setSpacing ( final int spacing )
-    {
-        this.spacing = spacing;
-    }
-
-    /**
-     * Returns separator side spacing.
-     *
-     * @return separator side spacing
-     */
-    public int getSideSpacing ()
-    {
-        return sideSpacing;
-    }
-
-    /**
-     * Sets separator side spacing.
-     *
-     * @param sideSpacing new separator side spacing
-     */
-    public void setSideSpacing ( final int sideSpacing )
-    {
-        this.sideSpacing = sideSpacing;
-    }
-
-    /**
-     * Paints popup menu separator.
-     *
-     * @param g graphics context
-     * @param c separator component
-     */
     @Override
-    public void paint ( final Graphics g, final JComponent c )
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        final Graphics2D g2d = ( Graphics2D ) g;
-        final Object aa = GraphicsUtils.setupAntialias ( g2d );
-        final Stroke stroke = GraphicsUtils.setupStroke ( g2d, this.stroke );
-        g.setColor ( color );
-        g.drawLine ( sideSpacing, c.getHeight () / 2, c.getWidth () - sideSpacing - 1, c.getHeight () / 2 );
-        GraphicsUtils.restoreStroke ( g2d, stroke );
-        GraphicsUtils.restoreAntialias ( g2d, aa );
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( separator );
+
+        // Uninstalling UI
+        super.uninstallUI ( c );
     }
 
-    /**
-     * Returns preferred separator size.
-     *
-     * @param c separator component
-     * @return preferred separator size
-     */
     @Override
-    public Dimension getPreferredSize ( final JComponent c )
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
     {
-        return new Dimension ( 0, spacing * 2 + 1 );
+        return PainterSupport.contains ( c, this, x, y );
+    }
+
+    @Override
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
+
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
+
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getPreferredSize ( c );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getMaximumSize ( @NotNull final JComponent c )
+    {
+        final Dimension ps = getPreferredSize ( c );
+        if ( ps != null )
+        {
+            // Fix for #347
+            if ( separator.getOrientation () == SwingConstants.VERTICAL )
+            {
+                ps.height = Short.MAX_VALUE;
+            }
+            else
+            {
+                ps.width = Short.MAX_VALUE;
+            }
+        }
+        return ps;
     }
 }

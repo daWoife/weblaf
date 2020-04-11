@@ -17,1070 +17,1265 @@
 
 package com.alee.laf.combobox;
 
-import com.alee.laf.WebLookAndFeel;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.jdk.Objects;
+import com.alee.laf.combobox.behavior.ComboBoxMouseWheelScrollBehavior;
 import com.alee.managers.hotkey.HotkeyData;
-import com.alee.managers.language.data.TooltipWay;
-import com.alee.managers.log.Log;
-import com.alee.managers.settings.DefaultValue;
-import com.alee.managers.settings.SettingsManager;
+import com.alee.managers.language.*;
+import com.alee.managers.settings.Configuration;
 import com.alee.managers.settings.SettingsMethods;
 import com.alee.managers.settings.SettingsProcessor;
+import com.alee.managers.settings.UISettingsManager;
+import com.alee.managers.style.*;
 import com.alee.managers.tooltip.ToolTipMethods;
 import com.alee.managers.tooltip.TooltipManager;
+import com.alee.managers.tooltip.TooltipWay;
 import com.alee.managers.tooltip.WebCustomTooltip;
-import com.alee.utils.*;
-import com.alee.utils.laf.ShapeProvider;
-import com.alee.utils.swing.*;
+import com.alee.painter.Painter;
+import com.alee.painter.PainterSupport;
+import com.alee.utils.swing.ClientProperty;
+import com.alee.utils.swing.MouseButton;
+import com.alee.utils.swing.extensions.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.KeyAdapter;
 import java.awt.event.MouseAdapter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 
 /**
+ * {@link JComboBox} extension class.
+ * It contains various useful methods to simplify core component usage.
+ *
+ * This component should never be used with a non-Web UIs as it might cause an unexpected behavior.
+ * You could still use that component even if WebLaF is not your application LaF as this component will use Web-UI in any case.
+ *
  * @author Mikle Garin
+ * @see JComboBox
+ * @see WebComboBoxUI
+ * @see ComboBoxPainter
  */
-
-public class WebComboBox extends JComboBox
-        implements ShapeProvider, EventMethods, ToolTipMethods, SettingsMethods, FontMethods<WebComboBox>, SizeMethods<WebComboBox>
+public class WebComboBox extends JComboBox implements Styleable, EventMethods, ToolTipMethods, LanguageMethods, LanguageEventMethods,
+        SettingsMethods, FontMethods<WebComboBox>, SizeMethods<WebComboBox>
 {
+    /**
+     * Component properties.
+     */
+    public static final String EDITOR_PROPERTY = "editor";
+
+    /**
+     * Whether or not combobox popup uses preferred width to ensure that all elements can be fully displayed.
+     * By default this is set to {@code false} which makes popup have exactly the same width as {@link WebComboBox}.
+     * Setting this to {@code true} will allow combobox popup to stretch to larger than combobox widths.
+     */
+    public static final ClientProperty<Boolean> WIDE_POPUP = new ClientProperty<Boolean> ( "widePopup", false );
+
+    /**
+     * Constructs new combobox.
+     */
     public WebComboBox ()
     {
-        super ();
+        this ( StyleId.auto );
     }
 
+    /**
+     * Constructs new combobox.
+     *
+     * @param items combobox items
+     */
+    public WebComboBox ( final Collection<?> items )
+    {
+        this ( StyleId.auto, items );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param items    combobox items
+     * @param selected selected index
+     */
+    public WebComboBox ( final Collection<?> items, final int selected )
+    {
+        this ( StyleId.auto, items, selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param items    combobox items
+     * @param selected selected item
+     */
+    public WebComboBox ( final Collection<?> items, final Object selected )
+    {
+        this ( StyleId.auto, items, selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param items combobox items
+     */
     public WebComboBox ( final Vector<?> items )
     {
-        super ( items );
+        this ( StyleId.auto, items );
     }
 
+    /**
+     * Constructs new combobox.
+     *
+     * @param items    combobox items
+     * @param selected selected index
+     */
     public WebComboBox ( final Vector<?> items, final int selected )
     {
-        super ( items );
-        setSelectedIndex ( selected );
+        this ( StyleId.auto, items, selected );
     }
 
+    /**
+     * Constructs new combobox.
+     *
+     * @param items    combobox items
+     * @param selected selected item
+     */
     public WebComboBox ( final Vector<?> items, final Object selected )
     {
-        super ( items );
-        setSelectedItem ( selected );
+        this ( StyleId.auto, items, selected );
     }
 
+    /**
+     * Constructs new combobox.
+     *
+     * @param items combobox items
+     */
     public WebComboBox ( final Object[] items )
     {
-        super ( items );
+        this ( StyleId.auto, items );
     }
 
+    /**
+     * Constructs new combobox.
+     *
+     * @param items    combobox items
+     * @param selected selected index
+     */
     public WebComboBox ( final Object[] items, final int selected )
     {
-        super ( items );
-        setSelectedIndex ( selected );
+        this ( StyleId.auto, items, selected );
     }
 
+    /**
+     * Constructs new combobox.
+     *
+     * @param items    combobox items
+     * @param selected selected item
+     */
     public WebComboBox ( final Object[] items, final Object selected )
     {
-        super ( items );
-        setSelectedItem ( selected );
+        this ( StyleId.auto, items, selected );
     }
 
-    public WebComboBox ( final ComboBoxModel aModel )
+    /**
+     * Constructs new combobox.
+     *
+     * @param model    combobox model
+     * @param selected selected index
+     */
+    public WebComboBox ( final ComboBoxModel model, final int selected )
     {
-        super ( aModel );
+        this ( StyleId.auto, model, selected );
     }
 
-    public WebComboBox ( final ComboBoxModel aModel, final int selected )
+    /**
+     * Constructs new combobox.
+     *
+     * @param model    combobox model
+     * @param selected selected item
+     */
+    public WebComboBox ( final ComboBoxModel model, final Object selected )
     {
-        super ( aModel );
+        this ( StyleId.auto, model, selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param model combobox model
+     */
+    public WebComboBox ( final ComboBoxModel model )
+    {
+        this ( StyleId.auto, model );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id {@link StyleId}
+     */
+    public WebComboBox ( final StyleId id )
+    {
+        this ( id, new WebComboBoxModel () );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id    {@link StyleId}
+     * @param items combobox items
+     */
+    public WebComboBox ( final StyleId id, final Collection<?> items )
+    {
+        this ( id, new WebComboBoxModel ( items ) );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param items    combobox items
+     * @param selected selected index
+     */
+    public WebComboBox ( final StyleId id, final Collection<?> items, final int selected )
+    {
+        this ( id, new WebComboBoxModel ( items ), selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param items    combobox items
+     * @param selected selected item
+     */
+    public WebComboBox ( final StyleId id, final Collection<?> items, final Object selected )
+    {
+        this ( id, new WebComboBoxModel ( items ), selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id    {@link StyleId}
+     * @param items combobox items
+     */
+    public WebComboBox ( final StyleId id, final Vector<?> items )
+    {
+        this ( id, new WebComboBoxModel ( items ) );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param items    combobox items
+     * @param selected selected index
+     */
+    public WebComboBox ( final StyleId id, final Vector<?> items, final int selected )
+    {
+        this ( id, new WebComboBoxModel ( items ), selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param items    combobox items
+     * @param selected selected item
+     */
+    public WebComboBox ( final StyleId id, final Vector<?> items, final Object selected )
+    {
+        this ( id, new WebComboBoxModel ( items ), selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id    {@link StyleId}
+     * @param items combobox items
+     */
+    public WebComboBox ( final StyleId id, final Object[] items )
+    {
+        this ( id, new WebComboBoxModel ( items ) );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param items    combobox items
+     * @param selected selected index
+     */
+    public WebComboBox ( final StyleId id, final Object[] items, final int selected )
+    {
+        this ( id, new WebComboBoxModel ( items ), selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param items    combobox items
+     * @param selected selected item
+     */
+    public WebComboBox ( final StyleId id, final Object[] items, final Object selected )
+    {
+        this ( id, new WebComboBoxModel ( items ), selected );
+    }
+
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param model    combobox model
+     * @param selected selected index
+     */
+    public WebComboBox ( final StyleId id, final ComboBoxModel model, final int selected )
+    {
+        this ( id, model );
         setSelectedIndex ( selected );
     }
 
-    public WebComboBox ( final ComboBoxModel aModel, final Object selected )
+    /**
+     * Constructs new combobox.
+     *
+     * @param id       {@link StyleId}
+     * @param model    combobox model
+     * @param selected selected item
+     */
+    public WebComboBox ( final StyleId id, final ComboBoxModel model, final Object selected )
     {
-        super ( aModel );
+        this ( id, model );
         setSelectedItem ( selected );
     }
 
     /**
-     * Returns selected value index.
-     * This method is overriden by WebComboBox to fix issue with "null" value from the model being ignored if selected.
+     * Constructs new combobox.
+     *
+     * @param id    {@link StyleId}
+     * @param model combobox model
+     */
+    public WebComboBox ( final StyleId id, final ComboBoxModel model )
+    {
+        super ( model );
+        setStyleId ( id );
+    }
+
+    /**
+     * Returns index of the selected value or {@code -1} if nothing is selected.
+     * This method is overridden by WebComboBox to fix issue with "null" value from the model being ignored if selected.
      * By default (in JComboBox) this method will not return index of "null" value in the model if it is selected.
      *
-     * @return index of the selected value
+     * @return index of the selected value or {@code -1} if nothing is selected
      */
     @Override
     public int getSelectedIndex ()
     {
-        final Object sObject = dataModel.getSelectedItem ();
-        int i;
-        Object obj;
-        for ( i = 0; i < dataModel.getSize (); i++ )
+        int selectedIndex = -1;
+        final Object selected = dataModel.getSelectedItem ();
+        for ( int i = 0; i < dataModel.getSize (); i++ )
         {
-            obj = dataModel.getElementAt ( i );
-            if ( CompareUtils.equals ( obj, sObject ) )
+            if ( Objects.equals ( dataModel.getElementAt ( i ), selected ) )
             {
-                return i;
+                selectedIndex = i;
+                break;
             }
         }
-        return -1;
+        return selectedIndex;
     }
 
-    public void setEditorColumns ( final int columns )
+    /**
+     * Returns whether or not combobox popup uses preferred width to ensure that all elements can be fully displayed.
+     * By default this is set to {@code false} which makes popup have exactly the same width as {@link WebComboBox}.
+     *
+     * @return {@code true} if combobox popup uses preferred width, {@code false} otherwise
+     */
+    public boolean isWidePopup ()
     {
-        getWebUI ().setEditorColumns ( columns );
+        return WIDE_POPUP.get ( this );
     }
 
-    public boolean isUseFirstValueAsPrototype ()
+    /**
+     * Sets whether or not combobox popup should use preferred width to ensure that all elements can be fully displayed.
+     * By default this is set to {@code false} which makes popup have exactly the same width as {@link WebComboBox}.
+     *
+     * @param wide whether or not combobox popup should use preferred width
+     */
+    public void setWidePopup ( final boolean wide )
     {
-        return getWebUI ().isUseFirstValueAsPrototype ();
+        WIDE_POPUP.set ( this, wide );
     }
 
-    public void setUseFirstValueAsPrototype ( final boolean use )
-    {
-        getWebUI ().setUseFirstValueAsPrototype ( use );
-    }
-
-    public ImageIcon getExpandIcon ()
-    {
-        return getWebUI ().getExpandIcon ();
-    }
-
-    public void setExpandIcon ( final ImageIcon expandIcon )
-    {
-        getWebUI ().setExpandIcon ( expandIcon );
-    }
-
-    public ImageIcon getCollapseIcon ()
-    {
-        return getWebUI ().getCollapseIcon ();
-    }
-
-    public void setCollapseIcon ( final ImageIcon collapseIcon )
-    {
-        getWebUI ().setCollapseIcon ( collapseIcon );
-    }
-
-    public int getIconSpacing ()
-    {
-        return getWebUI ().getIconSpacing ();
-    }
-
-    public void setIconSpacing ( final int iconSpacing )
-    {
-        getWebUI ().setIconSpacing ( iconSpacing );
-    }
-
-    public boolean isDrawBorder ()
-    {
-        return getWebUI ().isDrawBorder ();
-    }
-
-    public void setDrawBorder ( final boolean drawBorder )
-    {
-        getWebUI ().setDrawBorder ( drawBorder );
-    }
-
-    public boolean isWebColoredBackground ()
-    {
-        return getWebUI ().isWebColoredBackground ();
-    }
-
-    public void setWebColoredBackground ( final boolean webColored )
-    {
-        getWebUI ().setWebColoredBackground ( webColored );
-    }
-
-    public Color getExpandedBgColor ()
-    {
-        return getWebUI ().getExpandedBgColor ();
-    }
-
-    public void setExpandedBgColor ( final Color color )
-    {
-        getWebUI ().setExpandedBgColor ( color );
-    }
-
-    public boolean isDrawFocus ()
-    {
-        return getWebUI ().isDrawFocus ();
-    }
-
-    public void setDrawFocus ( final boolean drawFocus )
-    {
-        getWebUI ().setDrawFocus ( drawFocus );
-    }
-
-    public int getRound ()
-    {
-        return getWebUI ().getRound ();
-    }
-
-    public void setRound ( final int round )
-    {
-        getWebUI ().setRound ( round );
-    }
-
-    public int getShadeWidth ()
-    {
-        return getWebUI ().getShadeWidth ();
-    }
-
-    public void setShadeWidth ( final int shadeWidth )
-    {
-        getWebUI ().setShadeWidth ( shadeWidth );
-    }
-
+    /**
+     * Returns whether or not combobox selection change using mouse wheel is enabled.
+     *
+     * @return {@code true} if combobox selection change using mouse wheel is enabled, {@code false} otherwise
+     */
     public boolean isMouseWheelScrollingEnabled ()
     {
-        return getWebUI ().isMouseWheelScrollingEnabled ();
+        return ComboBoxMouseWheelScrollBehavior.isInstalled ( this );
     }
 
+    /**
+     * Sets whether or not combobox selection change using mouse wheel is enabled.
+     *
+     * @param enabled whether or not combobox selection change using mouse wheel is enabled
+     */
     public void setMouseWheelScrollingEnabled ( final boolean enabled )
     {
-        getWebUI ().setMouseWheelScrollingEnabled ( enabled );
-    }
-
-    @Override
-    public Shape provideShape ()
-    {
-        return getWebUI ().provideShape ();
-    }
-
-    public WebComboBoxCellRenderer getWebRenderer ()
-    {
-        return ( WebComboBoxCellRenderer ) getRenderer ();
-    }
-
-    public WebComboBoxUI getWebUI ()
-    {
-        return ( WebComboBoxUI ) getUI ();
-    }
-
-    @Override
-    public void updateUI ()
-    {
-        if ( getUI () == null || !( getUI () instanceof WebComboBoxUI ) )
+        if ( enabled )
         {
-            try
+            if ( !isMouseWheelScrollingEnabled () )
             {
-                setUI ( ( WebComboBoxUI ) ReflectUtils.createInstance ( WebLookAndFeel.comboBoxUI ) );
-            }
-            catch ( final Throwable e )
-            {
-                Log.error ( this, e );
-                setUI ( new WebComboBoxUI () );
+                ComboBoxMouseWheelScrollBehavior.install ( this );
             }
         }
         else
         {
-            setUI ( getUI () );
+            if ( isMouseWheelScrollingEnabled () )
+            {
+                ComboBoxMouseWheelScrollBehavior.uninstall ( this );
+            }
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMousePress ( final MouseEventRunnable runnable )
+    public StyleId getDefaultStyleId ()
     {
-        return EventUtils.onMousePress ( this, runnable );
+        return StyleId.combobox;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMousePress ( final MouseButton mouseButton, final MouseEventRunnable runnable )
+    public StyleId getStyleId ()
     {
-        return EventUtils.onMousePress ( this, mouseButton, runnable );
+        return StyleManager.getStyleId ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseEnter ( final MouseEventRunnable runnable )
+    public StyleId setStyleId ( @NotNull final StyleId id )
     {
-        return EventUtils.onMouseEnter ( this, runnable );
+        return StyleManager.setStyleId ( this, id );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseExit ( final MouseEventRunnable runnable )
+    public StyleId resetStyleId ()
     {
-        return EventUtils.onMouseExit ( this, runnable );
+        return StyleManager.resetStyleId ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public MouseAdapter onMouseDrag ( final MouseEventRunnable runnable )
+    public Skin getSkin ()
     {
-        return EventUtils.onMouseDrag ( this, runnable );
+        return StyleManager.getSkin ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public MouseAdapter onMouseDrag ( final MouseButton mouseButton, final MouseEventRunnable runnable )
+    public Skin setSkin ( @NotNull final Skin skin )
     {
-        return EventUtils.onMouseDrag ( this, mouseButton, runnable );
+        return StyleManager.setSkin ( this, skin );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public MouseAdapter onMouseClick ( final MouseEventRunnable runnable )
+    public Skin setSkin ( @NotNull final Skin skin, final boolean recursively )
     {
-        return EventUtils.onMouseClick ( this, runnable );
+        return StyleManager.setSkin ( this, skin, recursively );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public MouseAdapter onMouseClick ( final MouseButton mouseButton, final MouseEventRunnable runnable )
+    public Skin resetSkin ()
     {
-        return EventUtils.onMouseClick ( this, mouseButton, runnable );
+        return StyleManager.resetSkin ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public MouseAdapter onDoubleClick ( final MouseEventRunnable runnable )
+    public void addStyleListener ( @NotNull final StyleListener listener )
     {
-        return EventUtils.onDoubleClick ( this, runnable );
+        StyleManager.addStyleListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public MouseAdapter onMenuTrigger ( final MouseEventRunnable runnable )
+    public void removeStyleListener ( @NotNull final StyleListener listener )
     {
-        return EventUtils.onMenuTrigger ( this, runnable );
+        StyleManager.removeStyleListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public KeyAdapter onKeyType ( final KeyEventRunnable runnable )
+    public Painter getCustomPainter ()
     {
-        return EventUtils.onKeyType ( this, runnable );
+        return StyleManager.getCustomPainter ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public KeyAdapter onKeyType ( final HotkeyData hotkey, final KeyEventRunnable runnable )
+    public Painter setCustomPainter ( @NotNull final Painter painter )
     {
-        return EventUtils.onKeyType ( this, hotkey, runnable );
+        return StyleManager.setCustomPainter ( this, painter );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public KeyAdapter onKeyPress ( final KeyEventRunnable runnable )
+    public boolean resetCustomPainter ()
     {
-        return EventUtils.onKeyPress ( this, runnable );
+        return StyleManager.resetCustomPainter ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public KeyAdapter onKeyPress ( final HotkeyData hotkey, final KeyEventRunnable runnable )
+    public Shape getPainterShape ()
     {
-        return EventUtils.onKeyPress ( this, hotkey, runnable );
+        return PainterSupport.getShape ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public KeyAdapter onKeyRelease ( final KeyEventRunnable runnable )
+    public boolean isShapeDetectionEnabled ()
     {
-        return EventUtils.onKeyRelease ( this, runnable );
+        return PainterSupport.isShapeDetectionEnabled ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public KeyAdapter onKeyRelease ( final HotkeyData hotkey, final KeyEventRunnable runnable )
+    public void setShapeDetectionEnabled ( final boolean enabled )
     {
-        return EventUtils.onKeyRelease ( this, hotkey, runnable );
+        PainterSupport.setShapeDetectionEnabled ( this, enabled );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public FocusAdapter onFocusGain ( final FocusEventRunnable runnable )
+    public Insets getMargin ()
     {
-        return EventUtils.onFocusGain ( this, runnable );
+        return PainterSupport.getMargin ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public FocusAdapter onFocusLoss ( final FocusEventRunnable runnable )
+    public void setMargin ( final int margin )
     {
-        return EventUtils.onFocusLoss ( this, runnable );
+        PainterSupport.setMargin ( this, margin );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void setMargin ( final int top, final int left, final int bottom, final int right )
+    {
+        PainterSupport.setMargin ( this, top, left, bottom, right );
+    }
+
+    @Override
+    public void setMargin ( @Nullable final Insets margin )
+    {
+        PainterSupport.setMargin ( this, margin );
+    }
+
+    @Nullable
+    @Override
+    public Insets getPadding ()
+    {
+        return PainterSupport.getPadding ( this );
+    }
+
+    @Override
+    public void setPadding ( final int padding )
+    {
+        PainterSupport.setPadding ( this, padding );
+    }
+
+    @Override
+    public void setPadding ( final int top, final int left, final int bottom, final int right )
+    {
+        PainterSupport.setPadding ( this, top, left, bottom, right );
+    }
+
+    @Override
+    public void setPadding ( @Nullable final Insets padding )
+    {
+        PainterSupport.setPadding ( this, padding );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMousePress ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMousePress ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMousePress ( @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMousePress ( this, mouseButton, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMouseEnter ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMouseEnter ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMouseExit ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMouseExit ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMouseDrag ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMouseDrag ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMouseDrag ( @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMouseDrag ( this, mouseButton, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMouseClick ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMouseClick ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMouseClick ( @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMouseClick ( this, mouseButton, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onDoubleClick ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onDoubleClick ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onMenuTrigger ( @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onMenuTrigger ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public KeyAdapter onKeyType ( @NotNull final KeyEventRunnable runnable )
+    {
+        return EventMethodsImpl.onKeyType ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public KeyAdapter onKeyType ( @Nullable final HotkeyData hotkey, @NotNull final KeyEventRunnable runnable )
+    {
+        return EventMethodsImpl.onKeyType ( this, hotkey, runnable );
+    }
+
+    @NotNull
+    @Override
+    public KeyAdapter onKeyPress ( @NotNull final KeyEventRunnable runnable )
+    {
+        return EventMethodsImpl.onKeyPress ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public KeyAdapter onKeyPress ( @Nullable final HotkeyData hotkey, @NotNull final KeyEventRunnable runnable )
+    {
+        return EventMethodsImpl.onKeyPress ( this, hotkey, runnable );
+    }
+
+    @NotNull
+    @Override
+    public KeyAdapter onKeyRelease ( @NotNull final KeyEventRunnable runnable )
+    {
+        return EventMethodsImpl.onKeyRelease ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public KeyAdapter onKeyRelease ( @Nullable final HotkeyData hotkey, @NotNull final KeyEventRunnable runnable )
+    {
+        return EventMethodsImpl.onKeyRelease ( this, hotkey, runnable );
+    }
+
+    @NotNull
+    @Override
+    public FocusAdapter onFocusGain ( @NotNull final FocusEventRunnable runnable )
+    {
+        return EventMethodsImpl.onFocusGain ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public FocusAdapter onFocusLoss ( @NotNull final FocusEventRunnable runnable )
+    {
+        return EventMethodsImpl.onFocusLoss ( this, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onDragStart ( final int shift, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onDragStart ( this, shift, runnable );
+    }
+
+    @NotNull
+    @Override
+    public MouseAdapter onDragStart ( final int shift, @Nullable final MouseButton mouseButton, @NotNull final MouseEventRunnable runnable )
+    {
+        return EventMethodsImpl.onDragStart ( this, shift, mouseButton, runnable );
+    }
+
     @Override
     public WebCustomTooltip setToolTip ( final String tooltip )
     {
         return TooltipManager.setTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final Icon icon, final String tooltip )
     {
         return TooltipManager.setTooltip ( this, icon, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.setTooltip ( this, icon, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.setTooltip ( this, icon, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip )
     {
         return TooltipManager.setTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip, final int delay )
     {
         return TooltipManager.setTooltip ( this, tooltip, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip setToolTip ( final JComponent tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.setTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final String tooltip )
     {
         return TooltipManager.addTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final Icon icon, final String tooltip )
     {
         return TooltipManager.addTooltip ( this, icon, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.addTooltip ( this, icon, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final Icon icon, final String tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.addTooltip ( this, icon, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip )
     {
         return TooltipManager.addTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip, final int delay )
     {
         return TooltipManager.addTooltip ( this, tooltip, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip, final TooltipWay tooltipWay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebCustomTooltip addToolTip ( final JComponent tooltip, final TooltipWay tooltipWay, final int delay )
     {
         return TooltipManager.addTooltip ( this, tooltip, tooltipWay, delay );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTip ( final WebCustomTooltip tooltip )
     {
         TooltipManager.removeTooltip ( this, tooltip );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTips ()
     {
         TooltipManager.removeTooltips ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTips ( final WebCustomTooltip... tooltips )
     {
         TooltipManager.removeTooltips ( this, tooltips );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeToolTips ( final List<WebCustomTooltip> tooltips )
     {
         TooltipManager.removeTooltips ( this, tooltips );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public void registerSettings ( final String key )
+    public String getLanguage ()
     {
-        SettingsManager.registerComponent ( this, key );
+        return UILanguageManager.getComponentKey ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String key, final Class<T> defaultValueClass )
+    public void setLanguage ( @NotNull final String key, @Nullable final Object... data )
     {
-        SettingsManager.registerComponent ( this, key, defaultValueClass );
+        UILanguageManager.registerComponent ( this, key, data );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final Object defaultValue )
+    public void updateLanguage ( @Nullable final Object... data )
     {
-        SettingsManager.registerComponent ( this, key, defaultValue );
+        UILanguageManager.updateComponent ( this, data );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key )
+    public void updateLanguage ( @NotNull final String key, @Nullable final Object... data )
     {
-        SettingsManager.registerComponent ( this, group, key );
+        UILanguageManager.updateComponent ( this, key, data );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String group, final String key, final Class<T> defaultValueClass )
+    public void removeLanguage ()
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValueClass );
+        UILanguageManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key, final Object defaultValue )
+    public boolean isLanguageSet ()
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValue );
+        return UILanguageManager.isRegisteredComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void setLanguageUpdater ( @NotNull final LanguageUpdater updater )
     {
-        SettingsManager.registerComponent ( this, key, loadInitialSettings, applySettingsChanges );
+        UILanguageManager.registerLanguageUpdater ( this, updater );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String key, final Class<T> defaultValueClass,
-                                                            final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void removeLanguageUpdater ()
     {
-        SettingsManager.registerComponent ( this, key, defaultValueClass, loadInitialSettings, applySettingsChanges );
+        UILanguageManager.unregisterLanguageUpdater ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String key, final Object defaultValue, final boolean loadInitialSettings,
-                                   final boolean applySettingsChanges )
+    public void addLanguageListener ( @NotNull final LanguageListener listener )
     {
-        SettingsManager.registerComponent ( this, key, defaultValue, loadInitialSettings, applySettingsChanges );
+        UILanguageManager.addLanguageListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public <T extends DefaultValue> void registerSettings ( final String group, final String key, final Class<T> defaultValueClass,
-                                                            final boolean loadInitialSettings, final boolean applySettingsChanges )
+    public void removeLanguageListener ( @NotNull final LanguageListener listener )
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValueClass, loadInitialSettings, applySettingsChanges );
+        UILanguageManager.removeLanguageListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final String group, final String key, final Object defaultValue, final boolean loadInitialSettings,
-                                   final boolean applySettingsChanges )
+    public void removeLanguageListeners ()
     {
-        SettingsManager.registerComponent ( this, group, key, defaultValue, loadInitialSettings, applySettingsChanges );
+        UILanguageManager.removeLanguageListeners ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerSettings ( final SettingsProcessor settingsProcessor )
+    public void addDictionaryListener ( @NotNull final DictionaryListener listener )
     {
-        SettingsManager.registerComponent ( this, settingsProcessor );
+        UILanguageManager.addDictionaryListener ( this, listener );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void removeDictionaryListener ( @NotNull final DictionaryListener listener )
+    {
+        UILanguageManager.removeDictionaryListener ( this, listener );
+    }
+
+    @Override
+    public void removeDictionaryListeners ()
+    {
+        UILanguageManager.removeDictionaryListeners ( this );
+    }
+
+    @Override
+    public void registerSettings ( final Configuration configuration )
+    {
+        UISettingsManager.registerComponent ( this, configuration );
+    }
+
+    @Override
+    public void registerSettings ( final SettingsProcessor processor )
+    {
+        UISettingsManager.registerComponent ( this, processor );
+    }
+
     @Override
     public void unregisterSettings ()
     {
-        SettingsManager.unregisterComponent ( this );
+        UISettingsManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void loadSettings ()
     {
-        SettingsManager.loadComponentSettings ( this );
+        UISettingsManager.loadSettings ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void saveSettings ()
     {
-        SettingsManager.saveComponentSettings ( this );
+        UISettingsManager.saveSettings ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setPlainFont ()
     {
-        return SwingUtils.setPlainFont ( this );
+        return FontMethodsImpl.setPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setPlainFont ( final boolean apply )
     {
-        return SwingUtils.setPlainFont ( this, apply );
+        return FontMethodsImpl.setPlainFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isPlainFont ()
     {
-        return SwingUtils.isPlainFont ( this );
+        return FontMethodsImpl.isPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setBoldFont ()
     {
-        return SwingUtils.setBoldFont ( this );
+        return FontMethodsImpl.setBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setBoldFont ( final boolean apply )
     {
-        return SwingUtils.setBoldFont ( this, apply );
+        return FontMethodsImpl.setBoldFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isBoldFont ()
     {
-        return SwingUtils.isBoldFont ( this );
+        return FontMethodsImpl.isBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setItalicFont ()
     {
-        return SwingUtils.setItalicFont ( this );
+        return FontMethodsImpl.setItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setItalicFont ( final boolean apply )
     {
-        return SwingUtils.setItalicFont ( this, apply );
+        return FontMethodsImpl.setItalicFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isItalicFont ()
     {
-        return SwingUtils.isItalicFont ( this );
+        return FontMethodsImpl.isItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setFontStyle ( final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontStyle ( this, bold, italic );
+        return FontMethodsImpl.setFontStyle ( this, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setFontStyle ( final int style )
     {
-        return SwingUtils.setFontStyle ( this, style );
+        return FontMethodsImpl.setFontStyle ( this, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setFontSize ( final int fontSize )
     {
-        return SwingUtils.setFontSize ( this, fontSize );
+        return FontMethodsImpl.setFontSize ( this, fontSize );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox changeFontSize ( final int change )
     {
-        return SwingUtils.changeFontSize ( this, change );
+        return FontMethodsImpl.changeFontSize ( this, change );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getFontSize ()
     {
-        return SwingUtils.getFontSize ( this );
+        return FontMethodsImpl.getFontSize ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setFontSizeAndStyle ( final int fontSize, final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, bold, italic );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setFontSizeAndStyle ( final int fontSize, final int style )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, style );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebComboBox setFontName ( final String fontName )
     {
-        return SwingUtils.setFontName ( this, fontName );
+        return FontMethodsImpl.setFontName ( this, fontName );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getFontName ()
     {
-        return SwingUtils.getFontName ( this );
+        return FontMethodsImpl.getFontName ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getPreferredWidth ()
     {
-        return SizeUtils.getPreferredWidth ( this );
+        return SizeMethodsImpl.getPreferredWidth ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public WebComboBox setPreferredWidth ( final int preferredWidth )
     {
-        return SizeUtils.setPreferredWidth ( this, preferredWidth );
+        return SizeMethodsImpl.setPreferredWidth ( this, preferredWidth );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getPreferredHeight ()
     {
-        return SizeUtils.getPreferredHeight ( this );
+        return SizeMethodsImpl.getPreferredHeight ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public WebComboBox setPreferredHeight ( final int preferredHeight )
     {
-        return SizeUtils.setPreferredHeight ( this, preferredHeight );
+        return SizeMethodsImpl.setPreferredHeight ( this, preferredHeight );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMinimumWidth ()
-    {
-        return SizeUtils.getMinimumWidth ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebComboBox setMinimumWidth ( final int minimumWidth )
-    {
-        return SizeUtils.setMinimumWidth ( this, minimumWidth );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMinimumHeight ()
-    {
-        return SizeUtils.getMinimumHeight ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebComboBox setMinimumHeight ( final int minimumHeight )
-    {
-        return SizeUtils.setMinimumHeight ( this, minimumHeight );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMaximumWidth ()
-    {
-        return SizeUtils.getMaximumWidth ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebComboBox setMaximumWidth ( final int maximumWidth )
-    {
-        return SizeUtils.setMaximumWidth ( this, maximumWidth );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getMaximumHeight ()
-    {
-        return SizeUtils.getMaximumHeight ( this );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebComboBox setMaximumHeight ( final int maximumHeight )
-    {
-        return SizeUtils.setMaximumHeight ( this, maximumHeight );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
     public Dimension getPreferredSize ()
     {
-        return SizeUtils.getPreferredSize ( this, super.getPreferredSize () );
+        return SizeMethodsImpl.getPreferredSize ( this, super.getPreferredSize () );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
+    @Override
+    public Dimension getOriginalPreferredSize ()
+    {
+        return SizeMethodsImpl.getOriginalPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
     @Override
     public WebComboBox setPreferredSize ( final int width, final int height )
     {
-        return SizeUtils.setPreferredSize ( this, width, height );
+        return SizeMethodsImpl.setPreferredSize ( this, width, height );
+    }
+
+    @Override
+    public int getMaximumWidth ()
+    {
+        return SizeMethodsImpl.getMaximumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebComboBox setMaximumWidth ( final int maximumWidth )
+    {
+        return SizeMethodsImpl.setMaximumWidth ( this, maximumWidth );
+    }
+
+    @Override
+    public int getMaximumHeight ()
+    {
+        return SizeMethodsImpl.getMaximumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebComboBox setMaximumHeight ( final int maximumHeight )
+    {
+        return SizeMethodsImpl.setMaximumHeight ( this, maximumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMaximumSize ()
+    {
+        return SizeMethodsImpl.getMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMaximumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebComboBox setMaximumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMaximumSize ( this, width, height );
+    }
+
+    @Override
+    public int getMinimumWidth ()
+    {
+        return SizeMethodsImpl.getMinimumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebComboBox setMinimumWidth ( final int minimumWidth )
+    {
+        return SizeMethodsImpl.setMinimumWidth ( this, minimumWidth );
+    }
+
+    @Override
+    public int getMinimumHeight ()
+    {
+        return SizeMethodsImpl.getMinimumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebComboBox setMinimumHeight ( final int minimumHeight )
+    {
+        return SizeMethodsImpl.setMinimumHeight ( this, minimumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMinimumSize ()
+    {
+        return SizeMethodsImpl.getMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMinimumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebComboBox setMinimumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMinimumSize ( this, width, height );
+    }
+
+    /**
+     * Returns the look and feel (LaF) object that renders this component.
+     *
+     * @return the {@link WComboBoxUI} object that renders this component
+     */
+    @Override
+    public WComboBoxUI getUI ()
+    {
+        return ( WComboBoxUI ) super.getUI ();
+    }
+
+    /**
+     * Sets the LaF object that renders this component.
+     *
+     * @param ui {@link WComboBoxUI}
+     */
+    public void setUI ( final WComboBoxUI ui )
+    {
+        super.setUI ( ui );
+    }
+
+    @Override
+    public void updateUI ()
+    {
+        StyleManager.getDescriptor ( this ).updateUI ( this );
+    }
+
+    @Override
+    public String getUIClassID ()
+    {
+        return StyleManager.getDescriptor ( this ).getUIClassId ();
     }
 }

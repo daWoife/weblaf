@@ -17,189 +17,86 @@
 
 package com.alee.laf.menu;
 
-import com.alee.extended.layout.ToolbarLayout;
-import com.alee.global.StyleConstants;
-import com.alee.laf.WebLookAndFeel;
-import com.alee.utils.GraphicsUtils;
-import com.alee.utils.LafUtils;
-import com.alee.utils.SwingUtils;
-import com.alee.utils.laf.ShapeProvider;
-import com.alee.utils.swing.BorderMethods;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicMenuBarUI;
 import java.awt.*;
-import java.awt.geom.Line2D;
 
 /**
- * User: mgarin Date: 15.08.11 Time: 20:24
+ * Custom UI for {@link JMenuBar} component.
+ *
+ * @param <C> {@link JMenuBar} type
+ * @author Mikle Garin
+ * @author Alexandr Zernov
  */
-
-public class WebMenuBarUI extends BasicMenuBarUI implements ShapeProvider, BorderMethods
+public class WebMenuBarUI<C extends JMenuBar> extends WMenuBarUI<C>
 {
-    private Color topBgColor = WebMenuBarStyle.topBgColor;
-    private Color bottomBgColor = WebMenuBarStyle.bottomBgColor;
-    private boolean undecorated = WebMenuBarStyle.undecorated;
-    private int round = WebMenuBarStyle.round;
-    private int shadeWidth = WebMenuBarStyle.shadeWidth;
-    private MenuBarStyle menuBarStyle = WebMenuBarStyle.menuBarStyle;
-    private Color borderColor = WebMenuBarStyle.borderColor;
-
-    @SuppressWarnings ("UnusedParameters")
-    public static ComponentUI createUI ( final JComponent c )
+    /**
+     * Returns an instance of the {@link WebMenuBarUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
+     *
+     * @param c component that will use UI instance
+     * @return instance of the {@link WebMenuBarUI}
+     */
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebMenuBarUI ();
     }
 
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
+        // Installing UI
         super.installUI ( c );
 
-        // Default settings
-        SwingUtils.setOrientation ( menuBar );
-        LookAndFeel.installProperty ( menuBar, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
-        menuBar.setLayout ( new ToolbarLayout ( 0 ) );
-
-        // Updating border
-        updateBorder ();
+        // Applying skin
+        StyleManager.installSkin ( menuBar );
     }
 
     @Override
-    public Shape provideShape ()
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        return LafUtils.getWebBorderShape ( menuBar, getShadeWidth (), getRound () );
-    }
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( menuBar );
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void updateBorder ()
-    {
-        // Preserve old borders
-        if ( SwingUtils.isPreserveBorders ( menuBar ) )
-        {
-            return;
-        }
-
-        final Insets insets;
-        if ( !undecorated )
-        {
-            if ( menuBarStyle.equals ( MenuBarStyle.attached ) )
-            {
-                insets = new Insets ( 0, 0, 1 + shadeWidth, 0 );
-            }
-            else
-            {
-                insets = new Insets ( 1 + shadeWidth, 1 + shadeWidth, 1 + shadeWidth, 1 + shadeWidth );
-            }
-        }
-        else
-        {
-            insets = new Insets ( 0, 0, 0, 0 );
-        }
-        menuBar.setBorder ( LafUtils.createWebBorder ( insets ) );
-    }
-
-    public Color getTopBgColor ()
-    {
-        return topBgColor;
-    }
-
-    public void setTopBgColor ( final Color topBgColor )
-    {
-        this.topBgColor = topBgColor;
-    }
-
-    public Color getBottomBgColor ()
-    {
-        return bottomBgColor;
-    }
-
-    public void setBottomBgColor ( final Color bottomBgColor )
-    {
-        this.bottomBgColor = bottomBgColor;
-    }
-
-    public boolean isUndecorated ()
-    {
-        return undecorated;
-    }
-
-    public void setUndecorated ( final boolean undecorated )
-    {
-        this.undecorated = undecorated;
-        updateBorder ();
-    }
-
-    public MenuBarStyle getMenuBarStyle ()
-    {
-        return menuBarStyle;
-    }
-
-    public void setMenuBarStyle ( final MenuBarStyle menuBarStyle )
-    {
-        this.menuBarStyle = menuBarStyle;
-        updateBorder ();
-    }
-
-    public Color getBorderColor ()
-    {
-        return borderColor;
-    }
-
-    public void setBorderColor ( final Color borderColor )
-    {
-        this.borderColor = borderColor;
-    }
-
-    public int getRound ()
-    {
-        return round;
-    }
-
-    public void setRound ( final int round )
-    {
-        this.round = round;
-    }
-
-    public int getShadeWidth ()
-    {
-        return shadeWidth;
-    }
-
-    public void setShadeWidth ( final int shadeWidth )
-    {
-        this.shadeWidth = shadeWidth;
-        updateBorder ();
+        // Uninstalling UI
+        super.uninstallUI ( c );
     }
 
     @Override
-    public void paint ( final Graphics g, final JComponent c )
+    public boolean contains (@NotNull  final JComponent c, final int x, final int y )
     {
-        if ( !undecorated )
-        {
-            final Graphics2D g2d = ( Graphics2D ) g;
+        return PainterSupport.contains ( c, this, x, y );
+    }
 
-            if ( menuBarStyle == MenuBarStyle.attached )
-            {
-                final Shape border =
-                        new Line2D.Double ( 0, c.getHeight () - 1 - shadeWidth, c.getWidth () - 1, c.getHeight () - 1 - shadeWidth );
+    @Override
+    public int getBaseline (@NotNull  final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
 
-                GraphicsUtils.drawShade ( g2d, border, StyleConstants.shadeColor, shadeWidth );
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
 
-                g2d.setPaint ( new GradientPaint ( 0, 0, topBgColor, 0, c.getHeight (), bottomBgColor ) );
-                g2d.fillRect ( 0, 0, c.getWidth (), c.getHeight () - shadeWidth );
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
 
-                g2d.setPaint ( borderColor );
-                g2d.draw ( border );
-            }
-            else
-            {
-                LafUtils.drawWebStyle ( g2d, c, StyleConstants.shadeColor, shadeWidth, round, true, true, borderColor );
-            }
-        }
+    @Nullable
+    @Override
+    public Dimension getPreferredSize (@NotNull  final JComponent c )
+    {
+        return null;
     }
 }

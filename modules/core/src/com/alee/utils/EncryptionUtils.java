@@ -17,6 +17,8 @@
 
 package com.alee.utils;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
 import com.alee.utils.encryption.Base64;
 
 import java.io.IOException;
@@ -27,38 +29,49 @@ import java.io.UnsupportedEncodingException;
  *
  * @author Mikle Garin
  */
-
 public final class EncryptionUtils
 {
     /**
      * Default text encoding.
      */
+    @NotNull
     private static final String DEFAULT_ENCODING = "UTF-8";
 
     /**
      * Encode and decode key.
      */
+    @NotNull
     private static final String key = "aZCVKk3mospdfm12pk4fcFD43d435ccCDgHKPQMQ23x7zkq03";
 
     /**
-     * Returns text enrypted through xor and encoded using base64.
+     * Private constructor to avoid instantiation.
+     */
+    private EncryptionUtils ()
+    {
+        throw new UtilityException ( "Utility classes are not meant to be instantiated" );
+    }
+
+    /**
+     * Returns text encrypted through xor and encoded using base64.
      *
      * @param text text to encrypt
      * @return encrypted text
      */
-    public static String encrypt ( final String text )
+    @Nullable
+    public static String encrypt ( @Nullable final String text )
     {
         return encrypt ( text, key );
     }
 
     /**
-     * Returns text enrypted through xor and encoded using base64.
+     * Returns text encrypted through xor and encoded using base64.
      *
      * @param text text to encrypt
      * @param key  xor key
      * @return encrypted text
      */
-    public static String encrypt ( final String text, final String key )
+    @Nullable
+    public static String encrypt ( @Nullable final String text, @NotNull final String key )
     {
         return base64encode ( xorText ( text, key ) );
     }
@@ -69,7 +82,8 @@ public final class EncryptionUtils
      * @param text text to decrypt
      * @return decrypted text
      */
-    public static String decrypt ( final String text )
+    @Nullable
+    public static String decrypt ( @Nullable final String text )
     {
         return decrypt ( text, key );
     }
@@ -81,7 +95,7 @@ public final class EncryptionUtils
      * @param key  xor key
      * @return decrypted text
      */
-    public static String decrypt ( final String text, final String key )
+    public static String decrypt ( @Nullable final String text, @NotNull final String key )
     {
         return xorText ( base64decode ( text ), key );
     }
@@ -92,7 +106,8 @@ public final class EncryptionUtils
      * @param text to encrypt
      * @return encrypted text
      */
-    public static String xorText ( final String text )
+    @Nullable
+    public static String xorText ( @Nullable final String text )
     {
         return xorText ( text, key );
     }
@@ -104,23 +119,28 @@ public final class EncryptionUtils
      * @param key  xor key
      * @return encrypted text
      */
-    public static String xorText ( final String text, final String key )
+    @Nullable
+    public static String xorText ( @Nullable final String text, @NotNull final String key )
     {
-        if ( text == null )
+        final String result;
+        if ( text != null )
         {
-            return null;
+            final char[] keys = key.toCharArray ();
+            final char[] msg = text.toCharArray ();
+            final int ml = msg.length;
+            final int kl = keys.length;
+            final char[] newMsg = new char[ ml ];
+            for ( int i = 0; i < ml; i++ )
+            {
+                newMsg[ i ] = ( char ) ( msg[ i ] ^ keys[ i % kl ] );
+            }
+            result = new String ( newMsg );
         }
-
-        final char[] keys = key.toCharArray ();
-        final char[] mesg = text.toCharArray ();
-        final int ml = mesg.length;
-        final int kl = keys.length;
-        final char[] newmsg = new char[ ml ];
-        for ( int i = 0; i < ml; i++ )
+        else
         {
-            newmsg[ i ] = ( char ) ( mesg[ i ] ^ keys[ i % kl ] );
+            result = null;
         }
-        return new String ( newmsg );
+        return result;
     }
 
     /**
@@ -129,15 +149,16 @@ public final class EncryptionUtils
      * @param text text to encode
      * @return text encoded with base64
      */
-    public static String base64encode ( final String text )
+    @Nullable
+    public static String base64encode ( @Nullable final String text )
     {
         try
         {
-            return Base64.encode ( text.getBytes ( DEFAULT_ENCODING ) );
+            return text != null ? Base64.encode ( text.getBytes ( DEFAULT_ENCODING ) ) : null;
         }
         catch ( final UnsupportedEncodingException e )
         {
-            return null;
+            throw new RuntimeException ( "Unable to encode text using Base64", e );
         }
     }
 
@@ -147,15 +168,17 @@ public final class EncryptionUtils
      * @param text text to decoded
      * @return text decoded with base64
      */
-    public static String base64decode ( final String text )
+    @Nullable
+    public static String base64decode ( @Nullable final String text )
     {
         try
         {
-            return new String ( Base64.decode ( text ), DEFAULT_ENCODING );
+            final byte[] bytes = Base64.decode ( text );
+            return bytes != null ? new String ( bytes, DEFAULT_ENCODING ) : null;
         }
         catch ( final IOException e )
         {
-            return null;
+            throw new RuntimeException ( "Unable to decode text using Base64", e );
         }
     }
 }

@@ -17,81 +17,42 @@
 
 package com.alee.utils.swing.menu;
 
-import com.alee.laf.menu.WebCheckBoxMenuItem;
 import com.alee.laf.menu.WebMenuBar;
-import com.alee.laf.menu.WebMenuItem;
-import com.alee.laf.menu.WebRadioButtonMenuItem;
-import com.alee.managers.hotkey.HotkeyData;
-
-import java.awt.event.ActionListener;
+import com.alee.managers.style.StyleId;
 
 /**
- * Special generator that simplifies and shortens menu bar creation code.
+ * Special generator that simplifies and shortens {@link WebMenuBar} creation code.
  *
  * @author Mikle Garin
- * @see com.alee.utils.swing.menu.AbstractMenuGenerator
+ * @see AbstractMenuGenerator
  */
-
 public class MenuBarGenerator extends AbstractMenuGenerator<WebMenuBar>
 {
     /**
-     * Constructs new menu bar generator using default menu bar.
+     * Constructs new {@link MenuBarGenerator} using default {@link WebMenuBar}.
      */
     public MenuBarGenerator ()
     {
-        super ( new WebMenuBar () );
+        this ( new WebMenuBar () );
     }
 
     /**
-     * Constructs new menu bar generator using specified menu bar.
+     * Constructs new {@link MenuBarGenerator} using {@link WebMenuBar} with the specified {@link StyleId}.
      *
-     * @param menu menu bar
+     * @param id {@link WebMenuBar} {@link StyleId}
+     */
+    public MenuBarGenerator ( final StyleId id )
+    {
+        this ( new WebMenuBar ( id ) );
+    }
+
+    /**
+     * Constructs new {@link MenuBarGenerator} using specified {@link WebMenuBar}.
+     *
+     * @param menu {@link WebMenuBar}
      */
     public MenuBarGenerator ( final WebMenuBar menu )
     {
         super ( menu );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void addSeparator ()
-    {
-        // todo Probably add some custom WebLaF separator later instead of error
-        throw new RuntimeException ( "Menu bar is not supposed to have any separators in it" );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebMenuItem addItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                 final ActionListener actionListener )
-    {
-        // Throw an exception here since this is not an intended Swing behavior
-        throw new RuntimeException ( "Menu bar is not supposed to have any menu items in it" );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebCheckBoxMenuItem addCheckItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                              final boolean selected, final ActionListener actionListener )
-    {
-        // Throw an exception here since this is not an intended Swing behavior
-        throw new RuntimeException ( "Menu bar is not supposed to have any checkbox menu items in it" );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public WebRadioButtonMenuItem addRadioItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                                 final boolean selected, final ActionListener actionListener )
-    {
-        // Throw an exception here since this is not an intended Swing behavior
-        throw new RuntimeException ( "Menu bar is not supposed to have any radio button menu items in it" );
     }
 }

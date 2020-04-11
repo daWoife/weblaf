@@ -17,225 +17,139 @@
 
 package com.alee.laf.desktoppane;
 
-import com.alee.global.StyleConstants;
-import com.alee.laf.WebLookAndFeel;
-import com.alee.managers.focus.DefaultFocusTracker;
-import com.alee.managers.focus.FocusManager;
-import com.alee.managers.focus.FocusTracker;
-import com.alee.utils.GraphicsUtils;
-import com.alee.utils.LafUtils;
-import com.alee.utils.SwingUtils;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.*;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicInternalFrameUI;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 
 /**
- * Custom UI for JInternalFrame component.
+ * Custom UI for {@link JInternalFrame} component.
  *
+ * @param <C> component type
  * @author Mikle Garin
  */
-
-public class WebInternalFrameUI extends BasicInternalFrameUI
+public class WebInternalFrameUI<C extends JInternalFrame> extends WInternalFrameUI<C>
 {
     /**
-     * Frame backgroundColor.
+     * Listeners.
      */
-    protected Color backgroundColor = WebInternalFrameStyle.backgroundColor;
+    protected transient PropertyChangeListener rootPaneTracker;
 
     /**
-     * Style settings.
-     */
-    protected int sideSpacing = 1;
-
-    /**
-     * Panel focus tracker.
-     */
-    protected FocusTracker focusTracker;
-
-    /**
-     * Whether internal frame is focused or owns focused component or not.
-     */
-    protected boolean focused = false;
-
-    /**
-     * Returns an instance of the WebInternalFrameUI for the specified component.
-     * This tricky method is used by UIManager to create component UIs when needed.
+     * Returns an instance of the {@link WebInternalFrameUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
      *
      * @param c component that will use UI instance
-     * @return instance of the WebInternalFrameUI
+     * @return instance of the {@link WebInternalFrameUI}
      */
-    public static ComponentUI createUI ( final JComponent c )
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
-        return new WebInternalFrameUI ( ( JInternalFrame ) c );
+        return new WebInternalFrameUI ();
     }
 
-    /**
-     * Constructs new internal frame UI.
-     *
-     * @param b internal frame to which this UI will be applied
-     */
-    public WebInternalFrameUI ( final JInternalFrame b )
-    {
-        super ( b );
-    }
-
-    /**
-     * Installs UI in the specified component.
-     *
-     * @param c component for this UI
-     */
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
         super.installUI ( c );
 
-        // Default settings
-        SwingUtils.setOrientation ( frame );
-        LookAndFeel.installProperty ( frame, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
-        frame.setBackground ( backgroundColor );
-        frame.setBorder ( LafUtils.createWebBorder ( 0, 0, 0, 0 ) );
+        // Applying skin
+        StyleManager.installSkin ( internalFrame );
 
-        // Focus tracker for the panel content
-        focusTracker = new DefaultFocusTracker ()
+        // Installing title pane
+        if ( northPane instanceof WebInternalFrameTitlePane )
+        {
+            ( ( WebInternalFrameTitlePane ) northPane ).install ();
+        }
+
+        // Root pane style updates
+        updateRootPaneStyle ();
+        rootPaneTracker = new PropertyChangeListener ()
         {
             @Override
-            public void focusChanged ( final boolean focused )
+            public void propertyChange ( @NotNull final PropertyChangeEvent evt )
             {
-                WebInternalFrameUI.this.focused = focused;
-                frame.repaint ();
+                updateRootPaneStyle ();
             }
         };
-        FocusManager.addFocusTracker ( frame, focusTracker );
+        internalFrame.addPropertyChangeListener ( JInternalFrame.ROOT_PANE_PROPERTY, rootPaneTracker );
     }
 
-    /**
-     * Uninstalls UI from the specified component.
-     *
-     * @param c component with this UI
-     */
     @Override
-    public void uninstallUI ( final JComponent c )
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        // Removing focus tracker
-        FocusManager.removeFocusTracker ( focusTracker );
+        // Uninstalling listeners
+        internalFrame.removePropertyChangeListener ( JInternalFrame.ROOT_PANE_PROPERTY, rootPaneTracker );
+
+        // Uninstalling title pane
+        if ( northPane instanceof WebInternalFrameTitlePane )
+        {
+            ( ( WebInternalFrameTitlePane ) northPane ).uninstall ();
+        }
+
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( internalFrame );
 
         super.uninstallUI ( c );
     }
 
     /**
-     * Creates and returns internal pane north panel.
-     *
-     * @param w internal pane to process
-     * @return north panel for specified internal frame
+     * Performs root pane style update.
      */
-    @Override
-    protected JComponent createNorthPane ( final JInternalFrame w )
+    protected void updateRootPaneStyle ()
     {
-        titlePane = new WebInternalFrameTitlePane ( w );
-        return titlePane;
+        StyleId.internalframeRootpane.at ( internalFrame ).set ( internalFrame.getRootPane () );
     }
 
-    /**
-     * Creates and returns internal pane west panel.
-     *
-     * @param w internal pane to process
-     * @return west panel for specified internal frame
-     */
+    @NotNull
     @Override
-    protected JComponent createWestPane ( final JInternalFrame w )
+    protected LayoutManager createLayoutManager ()
     {
-        // todo Proper internal frame resize
-        return new JComponent ()
-        {
-            {
-                setOpaque ( false );
-            }
-
-            @Override
-            public Dimension getPreferredSize ()
-            {
-                return new Dimension ( 4 + sideSpacing, 0 );
-            }
-        };
+        return new InternalFrameLayout ();
     }
 
-    /**
-     * Creates and returns internal pane east panel.
-     *
-     * @param w internal pane to process
-     * @return east panel for specified internal frame
-     */
     @Override
-    protected JComponent createEastPane ( final JInternalFrame w )
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
     {
-        // todo Proper internal frame resize
-        return new JComponent ()
-        {
-            {
-                setOpaque ( false );
-            }
-
-            @Override
-            public Dimension getPreferredSize ()
-            {
-                return new Dimension ( 4 + sideSpacing, 0 );
-            }
-        };
+        return PainterSupport.contains ( c, this, x, y );
     }
 
-    /**
-     * Creates and returns internal pane south panel.
-     *
-     * @param w internal pane to process
-     * @return south panel for specified internal frame
-     */
     @Override
-    protected JComponent createSouthPane ( final JInternalFrame w )
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
     {
-        // todo Proper internal frame resize
-        return new JComponent ()
-        {
-            {
-                setOpaque ( false );
-            }
-
-            @Override
-            public Dimension getPreferredSize ()
-            {
-                return new Dimension ( 0, 4 + sideSpacing );
-            }
-        };
+        return PainterSupport.getBaseline ( c, this, width, height );
     }
 
-    /**
-     * Paints internal frame.
-     *
-     * @param g graphics
-     * @param c component
-     */
+    @NotNull
     @Override
-    public void paint ( final Graphics g, final JComponent c )
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
     {
-        final Graphics2D g2d = ( Graphics2D ) g;
-        final Object aa = GraphicsUtils.setupAntialias ( g2d );
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
 
-        // Border and background
-        LafUtils.drawWebStyle ( g2d, c, c.isEnabled () && focused ? StyleConstants.fieldFocusColor : StyleConstants.shadeColor,
-                StyleConstants.shadeWidth, StyleConstants.bigRound, true, false );
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
 
-        // Inner border
-        final Insets insets = c.getInsets ();
-        final int x = insets.left + 3 + sideSpacing;
-        final int y = insets.top + titlePane.getHeight () - 1;
-        final int w = c.getWidth () - 1 - insets.left - 3 - sideSpacing - insets.right - 3 - sideSpacing;
-        final int h = c.getHeight () - 1 - insets.top - titlePane.getHeight () + 1 - insets.bottom - 3 - sideSpacing;
-        final int round = ( StyleConstants.bigRound - 1 ) * 2;
-        g2d.setPaint ( Color.GRAY );
-        g2d.draw ( new RoundRectangle2D.Double ( x, y, w, h, round, round ) );
+    @Nullable
+    @Override
+    public Dimension getMinimumSize ( @NotNull final JComponent c )
+    {
+        return null;
+    }
 
-        GraphicsUtils.restoreAntialias ( g2d, aa );
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return null;
     }
 }

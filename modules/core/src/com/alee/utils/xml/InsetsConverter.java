@@ -17,64 +17,109 @@
 
 package com.alee.utils.xml;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.utils.swing.InsetsUIResource;
 import com.thoughtworks.xstream.converters.basic.AbstractSingleValueConverter;
 
 import java.awt.*;
 import java.util.StringTokenizer;
 
 /**
- * Custom Insets class converter.
+ * Custom XStream converter for {@link Insets}.
  *
  * @author Mikle Garin
  */
-
 public class InsetsConverter extends AbstractSingleValueConverter
 {
     /**
-     * {@inheritDoc}
+     * Values separator.
      */
+    public static final String separator = ",";
+
     @Override
-    public boolean canConvert ( final Class type )
+    public boolean canConvert ( @NotNull final Class type )
     {
-        return type.equals ( Insets.class );
+        return Insets.class.isAssignableFrom ( type );
+    }
+
+    @Override
+    public String toString ( @NotNull final Object insets )
+    {
+        return insetsToString ( ( Insets ) insets );
+    }
+
+    @Override
+    public Object fromString ( @NotNull final String string )
+    {
+        final Insets insets = insetsFromString ( string );
+        return ConverterContext.get ().isUIResource () ? new InsetsUIResource ( insets ) : insets;
     }
 
     /**
-     * {@inheritDoc}
+     * Returns {@link Insets} converted into string.
+     *
+     * @param insets {@link Insets} to convert
+     * @return v converted into string
      */
-    @Override
-    public Object fromString ( final String insets )
+    @NotNull
+    public static String insetsToString ( @NotNull final Insets insets )
+    {
+        final String string;
+        if ( insets.top == insets.left && insets.left == insets.bottom && insets.bottom == insets.right )
+        {
+            string = Integer.toString ( insets.top );
+        }
+        else
+        {
+            string = insets.top + separator + insets.left + separator + insets.bottom + separator + insets.right;
+        }
+        return string;
+    }
+
+    /**
+     * Returns {@link Insets} read from string.
+     *
+     * @param string {@link Insets} string
+     * @return {@link Insets} read from string
+     */
+    @NotNull
+    public static Insets insetsFromString ( @NotNull final String string )
     {
         try
         {
-            final StringTokenizer tokenizer = new StringTokenizer ( insets, ",", false );
-            final int top = Integer.parseInt ( tokenizer.nextToken ().trim () );
-            final int left = Integer.parseInt ( tokenizer.nextToken ().trim () );
-            final int bottom = Integer.parseInt ( tokenizer.nextToken ().trim () );
-            final int right = Integer.parseInt ( tokenizer.nextToken ().trim () );
-            return new Insets ( top, left, bottom, right );
+            final Insets insets;
+            final StringTokenizer tokenizer = new StringTokenizer ( string, separator, false );
+            if ( tokenizer.hasMoreTokens () )
+            {
+                final int top = Integer.parseInt ( tokenizer.nextToken ().trim () );
+                if ( tokenizer.hasMoreTokens () )
+                {
+                    final int left = Integer.parseInt ( tokenizer.nextToken ().trim () );
+                    if ( tokenizer.hasMoreTokens () )
+                    {
+                        final int bottom = Integer.parseInt ( tokenizer.nextToken ().trim () );
+                        final int right = Integer.parseInt ( tokenizer.nextToken ().trim () );
+                        insets = new Insets ( top, left, bottom, right );
+                    }
+                    else
+                    {
+                        insets = new Insets ( top, left, top, left );
+                    }
+                }
+                else
+                {
+                    insets = new Insets ( top, top, top, top );
+                }
+            }
+            else
+            {
+                insets = new Insets ( 0, 0, 0, 0 );
+            }
+            return insets;
         }
-        catch ( final Throwable e )
+        catch ( final Exception e )
         {
-            try
-            {
-                final int spacing = Integer.parseInt ( insets );
-                return new Insets ( spacing, spacing, spacing, spacing );
-            }
-            catch ( final Throwable ex )
-            {
-                return new Insets ( 0, 0, 0, 0 );
-            }
+            throw new XmlException ( "Unable to parse Insets: " + string, e );
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String toString ( final Object object )
-    {
-        final Insets insets = ( Insets ) object;
-        return insets.top + "," + insets.left + "," + insets.bottom + "," + insets.right;
     }
 }

@@ -17,43 +17,84 @@
 
 package com.alee.laf.desktoppane;
 
-import com.alee.laf.WebLookAndFeel;
-import com.alee.utils.LafUtils;
-import com.alee.utils.SwingUtils;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicDesktopIconUI;
 import java.awt.*;
 
 /**
- * User: mgarin Date: 17.08.11 Time: 23:14
+ * Custom UI for {@link javax.swing.JInternalFrame.JDesktopIcon} component.
+ *
+ * @param <C> component type
+ * @author Mikle Garin
+ * @author Alexandr Zernov
  */
-
-public class WebDesktopIconUI extends BasicDesktopIconUI
+public class WebDesktopIconUI<C extends JInternalFrame.JDesktopIcon> extends WDesktopIconUI<C>
 {
-    @SuppressWarnings ( "UnusedParameters" )
-    public static ComponentUI createUI ( final JComponent c )
+    /**
+     * Returns an instance of the {@link WebDesktopIconUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
+     *
+     * @param c component that will use UI instance
+     * @return instance of the {@link WebDesktopIconUI}
+     */
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebDesktopIconUI ();
     }
 
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
         super.installUI ( c );
 
-        // Default settings
-        SwingUtils.setOrientation ( c );
-        c.setBorder ( LafUtils.createWebBorder ( 0, 0, 0, 0 ) );
-        LookAndFeel.installProperty ( c, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
+        // Applying skin
+        StyleManager.installSkin ( desktopIcon );
     }
 
     @Override
-    protected void installComponents ()
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        iconPane = new WebInternalFrameIconPane ( frame );
-        desktopIcon.setLayout ( new BorderLayout () );
-        desktopIcon.add ( iconPane, BorderLayout.CENTER );
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( desktopIcon );
+
+        super.uninstallUI ( c );
+    }
+
+    @Override
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
+    {
+        return PainterSupport.contains ( c, this, x, y );
+    }
+
+    @Override
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
+
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
+
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getPreferredSize ( c, super.getPreferredSize ( c ) );
     }
 }

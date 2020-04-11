@@ -17,6 +17,8 @@
 
 package com.alee.utils;
 
+import com.alee.api.annotations.NotNull;
+
 import java.util.Random;
 
 /**
@@ -24,13 +26,20 @@ import java.util.Random;
  *
  * @author Mikle Garin
  */
-
 public final class MathUtils
 {
     /**
      * Random numbers generator.
      */
-    private static Random random = new Random ();
+    private static final Random random = new Random ();
+
+    /**
+     * Private constructor to avoid instantiation.
+     */
+    private MathUtils ()
+    {
+        throw new UtilityException ( "Utility classes are not meant to be instantiated" );
+    }
 
     /**
      * Returns random integer number between 0 (inclusive) and 100 (inclusive).
@@ -71,7 +80,7 @@ public final class MathUtils
      * @param numbers number to choose random one from
      * @return random integer number from one the specified integers
      */
-    public static int random ( final int... numbers )
+    public static int random ( @NotNull final int... numbers )
     {
         return numbers[ random ( 0, numbers.length - 1 ) ];
     }
@@ -101,24 +110,90 @@ public final class MathUtils
     /**
      * Returns rounded square root for the specified integer number.
      *
-     * @param i integer number to process
+     * @param d integer number to process
      * @return rounded square root for the specified integer number
      */
-    public static int sqrt ( final double i )
+    public static int sqrtToInt ( final double d )
     {
-        return ( int ) Math.round ( Math.sqrt ( i ) );
+        return roundToInt ( Math.sqrt ( d ) );
+    }
+
+    /**
+     * Returns double value rounded to int value.
+     *
+     * @param d double value to round
+     * @return double value rounded to int value
+     */
+    public static int roundToInt ( final double d )
+    {
+        return ( int ) Math.round ( d );
     }
 
     /**
      * Returns value limited by the specified range.
      *
-     * @param value value to limit
      * @param min   range minimum
+     * @param value value to limit
      * @param max   range maximum
      * @return value limited by the specified range
      */
-    public static int limit ( final int value, final int min, final int max )
+    public static int limit ( final int min, final int value, final int max )
     {
+        if ( min > max )
+        {
+            throw new RuntimeException ( "Minimum value cannot be greated than maximum value" );
+        }
+        return Math.max ( min, Math.min ( value, max ) );
+    }
+
+    /**
+     * Returns value limited by the specified range.
+     *
+     * @param min   range minimum
+     * @param value value to limit
+     * @param max   range maximum
+     * @return value limited by the specified range
+     */
+    public static long limit ( final long min, final long value, final long max )
+    {
+        if ( min > max )
+        {
+            throw new RuntimeException ( "Minimum value cannot be greated than maximum value" );
+        }
+        return Math.max ( min, Math.min ( value, max ) );
+    }
+
+    /**
+     * Returns value limited by the specified range.
+     *
+     * @param min   range minimum
+     * @param value value to limit
+     * @param max   range maximum
+     * @return value limited by the specified range
+     */
+    public static float limit ( final float min, final float value, final float max )
+    {
+        if ( min > max )
+        {
+            throw new RuntimeException ( "Minimum value cannot be greated than maximum value" );
+        }
+        return Math.max ( min, Math.min ( value, max ) );
+    }
+
+    /**
+     * Returns value limited by the specified range.
+     *
+     * @param min   range minimum
+     * @param value value to limit
+     * @param max   range maximum
+     * @return value limited by the specified range
+     */
+    public static double limit ( final double min, final double value, final double max )
+    {
+        if ( min > max )
+        {
+            throw new RuntimeException ( "Minimum value cannot be greated than maximum value" );
+        }
         return Math.max ( min, Math.min ( value, max ) );
     }
 
@@ -128,7 +203,7 @@ public final class MathUtils
      * @param integers integer numbers to process
      * @return maximum of the specified integer numbers
      */
-    public static int max ( final int... integers )
+    public static int max ( @NotNull final int... integers )
     {
         int max = integers[ 0 ];
         for ( int i = 1; i < integers.length; i++ )
@@ -144,7 +219,7 @@ public final class MathUtils
      * @param integers integer numbers to process
      * @return minimum of the specified integer numbers
      */
-    public static int min ( final int... integers )
+    public static int min ( @NotNull final int... integers )
     {
         int min = integers[ 0 ];
         for ( int i = 1; i < integers.length; i++ )

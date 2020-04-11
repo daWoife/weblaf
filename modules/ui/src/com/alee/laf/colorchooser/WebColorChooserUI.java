@@ -17,47 +17,65 @@
 
 package com.alee.laf.colorchooser;
 
-import com.alee.laf.WebLookAndFeel;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.*;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.colorchooser.ColorSelectionModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicColorChooserUI;
 import java.awt.*;
 
 /**
- * User: mgarin Date: 17.08.11 Time: 22:50
+ * Custom UI for {@link JColorChooser} component.
+ *
+ * @author Mikle Garin
+ * @author Alexandr Zernov
  */
-
-public class WebColorChooserUI extends BasicColorChooserUI
+public class WebColorChooserUI extends WColorChooserUI
 {
     /**
-     * todo 1. Implement base JColorChooser features
+     * todo 1. Implement some of the missing JColorChooser features
      */
 
-    private WebColorChooserPanel colorChooserPanel;
-    private ColorSelectionModel selectionModel;
-    private ChangeListener modelChangeListener;
-    private boolean modifying = false;
+    /**
+     * Runtime variables.
+     */
+    protected transient WebColorChooserPanel colorChooserPanel;
+    protected transient ColorSelectionModel selectionModel;
+    protected transient ChangeListener modelChangeListener;
+    protected transient boolean modifying = false;
 
-    @SuppressWarnings ("UnusedParameters")
-    public static ComponentUI createUI ( final JComponent c )
+    /**
+     * Returns an instance of the {@link WebColorChooserUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
+     *
+     * @param c component that will use UI instance
+     * @return instance of the {@link WebColorChooserUI}
+     */
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebColorChooserUI ();
     }
 
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
+        // Saving color chooser reference
         chooser = ( JColorChooser ) c;
+
+        // Applying skin
+        StyleManager.installSkin ( chooser );
+
         selectionModel = chooser.getSelectionModel ();
 
-        LookAndFeel.installProperty ( chooser, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
         chooser.setLayout ( new BorderLayout () );
 
-        colorChooserPanel = new WebColorChooserPanel ( false );
+        colorChooserPanel = new WebColorChooserPanel ( StyleId.colorchooserContent.at ( chooser ), false );
         colorChooserPanel.setColor ( selectionModel.getSelectedColor () );
         colorChooserPanel.addChangeListener ( new ChangeListener ()
         {
@@ -91,69 +109,118 @@ public class WebColorChooserUI extends BasicColorChooserUI
     }
 
     @Override
-    public void uninstallUI ( final JComponent c )
+    public void uninstallUI ( @NotNull final JComponent c )
     {
+        // Removing content
         chooser.remove ( colorChooserPanel );
         chooser.setLayout ( null );
         selectionModel.removeChangeListener ( modelChangeListener );
         modelChangeListener = null;
         colorChooserPanel = null;
         selectionModel = null;
+
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( chooser );
+
+        // Removing color chooser reference
         chooser = null;
     }
 
+    @Override
     public boolean isShowButtonsPanel ()
     {
         return colorChooserPanel.isShowButtonsPanel ();
     }
 
-    public void setShowButtonsPanel ( final boolean showButtonsPanel )
+    @Override
+    public void setShowButtonsPanel ( final boolean display )
     {
-        colorChooserPanel.setShowButtonsPanel ( showButtonsPanel );
+        colorChooserPanel.setShowButtonsPanel ( display );
     }
 
+    @Override
     public boolean isWebOnlyColors ()
     {
         return colorChooserPanel.isWebOnlyColors ();
     }
 
-    public void setWebOnlyColors ( final boolean webOnlyColors )
+    @Override
+    public void setWebOnlyColors ( final boolean webOnly )
     {
-        colorChooserPanel.setWebOnlyColors ( webOnlyColors );
+        colorChooserPanel.setWebOnlyColors ( webOnly );
     }
 
-    public Color getOldColor ()
+    @Override
+    public Color getPreviousColor ()
     {
         return colorChooserPanel.getOldColor ();
     }
 
-    public void setOldColor ( final Color oldColor )
+    @Override
+    public void setPreviousColor ( final Color previous )
     {
-        colorChooserPanel.setOldColor ( oldColor );
+        colorChooserPanel.setOldColor ( previous );
     }
 
+    @Override
     public void resetResult ()
     {
         colorChooserPanel.resetResult ();
     }
 
+    @Override
     public void setResult ( final int result )
     {
         colorChooserPanel.setResult ( result );
     }
 
+    @Override
     public int getResult ()
     {
         return colorChooserPanel.getResult ();
     }
 
-    public void addColorChooserListener ( final ColorChooserListener colorChooserListener )
+    @Override
+    public void addColorChooserListener ( @NotNull final ColorChooserListener listener )
     {
-        colorChooserPanel.addColorChooserListener ( colorChooserListener );
+        colorChooserPanel.addColorChooserListener ( listener );
     }
 
-    public void removeColorChooserListener ( final ColorChooserListener colorChooserListener )
+    @Override
+    public void removeColorChooserListener ( @NotNull final ColorChooserListener listener )
     {
-        colorChooserPanel.removeColorChooserListener ( colorChooserListener );
+        colorChooserPanel.removeColorChooserListener ( listener );
+    }
+
+    @Override
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
+    {
+        return PainterSupport.contains ( c, this, x, y );
+    }
+
+    @Override
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
+
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
+
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return null;
     }
 }

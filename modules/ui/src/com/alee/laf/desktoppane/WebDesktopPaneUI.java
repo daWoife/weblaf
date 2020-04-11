@@ -17,36 +17,84 @@
 
 package com.alee.laf.desktoppane;
 
-import com.alee.global.StyleConstants;
-import com.alee.laf.WebLookAndFeel;
-import com.alee.utils.LafUtils;
-import com.alee.utils.SwingUtils;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicDesktopPaneUI;
+import java.awt.*;
 
 /**
- * User: mgarin Date: 17.08.11 Time: 23:14
+ * Custom UI for {@link JDesktopPane} component.
+ *
+ * @param <C> component type
+ * @author Mikle Garin
  */
-
-public class WebDesktopPaneUI extends BasicDesktopPaneUI
+public class WebDesktopPaneUI<C extends JDesktopPane> extends WDesktopPaneUI<C>
 {
-    @SuppressWarnings ( "UnusedParameters" )
-    public static ComponentUI createUI ( final JComponent c )
+    /**
+     * Returns an instance of the {@link WebDesktopPaneUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
+     *
+     * @param c component that will use UI instance
+     * @return instance of the {@link WebDesktopPaneUI}
+     */
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebDesktopPaneUI ();
     }
 
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
         super.installUI ( c );
 
-        // Default settings
-        SwingUtils.setOrientation ( c );
-        LookAndFeel.installProperty ( c, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.TRUE );
-        c.setBorder ( LafUtils.createWebBorder ( 0, 0, 0, 0 ) );
-        c.setBackground ( StyleConstants.backgroundColor );
+        // Applying skin
+        StyleManager.installSkin ( desktop );
+    }
+
+    @Override
+    public void uninstallUI ( @NotNull final JComponent c )
+    {
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( desktop );
+
+        // Uninstalling UI
+        super.uninstallUI ( c );
+    }
+
+    @Override
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
+    {
+        return PainterSupport.contains ( c, this, x, y );
+    }
+
+    @Override
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
+
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
+
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return null;
     }
 }

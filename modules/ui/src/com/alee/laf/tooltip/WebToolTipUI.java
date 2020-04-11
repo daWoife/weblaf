@@ -17,130 +17,85 @@
 
 package com.alee.laf.tooltip;
 
-import com.alee.laf.WebLookAndFeel;
-import com.alee.utils.GraphicsUtils;
-import com.alee.utils.LafUtils;
-import com.alee.utils.SwingUtils;
-import com.alee.utils.laf.ShapeProvider;
-import com.alee.utils.swing.BorderMethods;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.basic.BasicToolTipUI;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
-import java.util.Map;
 
 /**
- * Custom UI for JTooltip component.
+ * Custom UI for {@link JToolTip} component.
  *
+ * @param <C> {@link JToolTip} type
  * @author Mikle Garin
  */
-
-public class WebToolTipUI extends BasicToolTipUI implements ShapeProvider, BorderMethods
+public class WebToolTipUI<C extends JToolTip> extends WToolTipUI<C>
 {
     /**
-     * Tooltip instance.
-     */
-    private JComponent tooltip = null;
-
-    /**
-     * Returns an instance of the WebToolTipUI for the specified component.
-     * This tricky method is used by UIManager to create component UIs when needed.
+     * Returns an instance of the {@link WebToolTipUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
      *
      * @param c component that will use UI instance
-     * @return instance of the WebToolTipUI
+     * @return instance of the {@link WebToolTipUI}
      */
-    @SuppressWarnings ( "UnusedParameters" )
-    public static ComponentUI createUI ( final JComponent c )
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebToolTipUI ();
     }
 
-    /**
-     * Installs UI in the specified component.
-     *
-     * @param c component for this UI
-     */
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
+        // Installing UI
         super.installUI ( c );
 
-        this.tooltip = c;
-
-        // Default settings
-        SwingUtils.setOrientation ( tooltip );
-        LookAndFeel.installProperty ( tooltip, WebLookAndFeel.OPAQUE_PROPERTY, Boolean.FALSE );
-        tooltip.setBackground ( WebTooltipStyle.backgroundColor );
-        tooltip.setForeground ( WebTooltipStyle.textColor );
-
-        // Updating border
-        updateBorder ();
+        // Applying skin
+        StyleManager.installSkin ( toolTip );
     }
 
-    /**
-     * Uninstalls UI from the specified component.
-     *
-     * @param c component with this UI
-     */
     @Override
-    public void uninstallUI ( final JComponent c )
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        this.tooltip = null;
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( toolTip );
 
+        // Uninstalling UI
         super.uninstallUI ( c );
     }
 
-    /**
-     * Returns component shape.
-     *
-     * @return component shape
-     */
     @Override
-    public Shape provideShape ()
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
     {
-        return new RoundRectangle2D.Double ( 0, 0, tooltip.getWidth (), tooltip.getHeight (), WebTooltipStyle.round * 2,
-                WebTooltipStyle.round * 2 );
+        return PainterSupport.contains ( c, this, x, y );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void updateBorder ()
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
     {
-        // Preserve old borders
-        if ( SwingUtils.isPreserveBorders ( tooltip ) )
-        {
-            return;
-        }
-
-        tooltip.setBorder ( LafUtils.createWebBorder ( WebTooltipStyle.contentMargin ) );
+        return PainterSupport.getBaseline ( c, this, width, height );
     }
 
-    /**
-     * Paints tooltip.
-     *
-     * @param g graphics
-     * @param c component
-     */
+    @NotNull
     @Override
-    public void paint ( final Graphics g, final JComponent c )
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
     {
-        final Graphics2D g2d = ( Graphics2D ) g;
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
 
-        final Object aa = GraphicsUtils.setupAntialias ( g2d );
-        final Composite oc = GraphicsUtils.setupAlphaComposite ( g2d, WebTooltipStyle.trasparency );
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
 
-        g2d.setPaint ( c.getBackground () );
-        g2d.fillRoundRect ( 0, 0, c.getWidth (), c.getHeight (), WebTooltipStyle.round * 2, WebTooltipStyle.round * 2 );
-
-        GraphicsUtils.restoreComposite ( g2d, oc );
-        GraphicsUtils.restoreAntialias ( g2d, aa );
-
-        final Map taa = SwingUtils.setupTextAntialias ( g2d );
-        super.paint ( g, c );
-        SwingUtils.restoreTextAntialias ( g2d, taa );
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getPreferredSize ( c );
     }
 }

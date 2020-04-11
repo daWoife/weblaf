@@ -17,31 +17,36 @@
 
 package com.alee.extended.label;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+
 /**
  * This class represents part of the multi-styled text with its own style.
- * Created for internal usage within WebStyledLabelUI to split the styled text into separate renderable pieces.
+ * Used within {@link AbstractStyledTextContent} to split styled text into simple renderable pieces.
  *
  * @author Mikle Garin
+ * @see <a href="https://github.com/mgarin/weblaf/wiki/How-to-use-WebStyledLabel">How to use WebStyledLabel</a>
  */
-
 public class TextRange
 {
     /**
      * Text part.
      */
-    public String text;
+    @NotNull
+    public final String text;
 
     /**
      * Text part style.
      */
-    public StyleRange styleRange;
+    @Nullable
+    public final StyleRange styleRange;
 
     /**
      * Constructs new TextRange with empty style.
      *
      * @param text text part
      */
-    public TextRange ( final String text )
+    public TextRange ( @NotNull final String text )
     {
         this ( text, null );
     }
@@ -52,9 +57,8 @@ public class TextRange
      * @param text       text part
      * @param styleRange text part style
      */
-    public TextRange ( final String text, final StyleRange styleRange )
+    public TextRange ( @NotNull final String text, @Nullable final StyleRange styleRange )
     {
-        super ();
         this.text = text;
         this.styleRange = styleRange;
     }
@@ -64,6 +68,7 @@ public class TextRange
      *
      * @return text part
      */
+    @NotNull
     public String getText ()
     {
         return text;
@@ -74,6 +79,7 @@ public class TextRange
      *
      * @return text part style
      */
+    @Nullable
     public StyleRange getStyleRange ()
     {
         return styleRange;

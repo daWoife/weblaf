@@ -17,68 +17,66 @@
 
 package com.alee.extended.tree;
 
-import com.alee.global.GlobalConstants;
+import com.alee.api.annotations.NotNull;
 import com.alee.utils.compare.Filter;
+import com.alee.utils.filefilter.NonHiddenFilter;
 
 import java.io.File;
 
 /**
- * Custom filter for file tree nodes.
+ * Custom filter for {@link FileTreeNode}s.
  *
  * @author Mikle Garin
  */
-
 public class FileTreeNodeFilter implements Filter<FileTreeNode>
 {
     /**
-     * Used file filter.
+     * {@link Filter} used for filtering {@link File}s.
      */
+    @NotNull
     protected Filter<File> filter;
 
     /**
-     * Constructs new FileTreeNodeFilter with default file filter.
+     * Constructs new {@link FileTreeNodeFilter} with default file filter.
      */
     public FileTreeNodeFilter ()
     {
-        this ( GlobalConstants.NON_HIDDEN_ONLY_FILTER );
+        this ( new NonHiddenFilter () );
     }
 
     /**
-     * Constructs new FileTreeNodeFilter using the specified file filter.
+     * Constructs new {@link FileTreeNodeFilter} using the specified file filter.
      *
      * @param filter file filter
      */
-    public FileTreeNodeFilter ( final Filter<File> filter )
+    public FileTreeNodeFilter ( @NotNull final Filter<File> filter )
     {
-        super ();
         this.filter = filter;
     }
 
     /**
-     * Returns used file filter.
+     * Returns {@link Filter} used for filtering {@link File}s.
      *
-     * @return used file filter
+     * @return {@link Filter} used for filtering {@link File}s
      */
+    @NotNull
     public Filter<File> getFilter ()
     {
         return filter;
     }
 
     /**
-     * Sets used file filter.
+     * Sets {@link Filter} used for filtering {@link File}s.
      *
-     * @param filter used file filter
+     * @param filter {@link Filter} used for filtering {@link File}s
      */
-    public void setFilter ( final Filter<File> filter )
+    public void setFilter ( @NotNull final Filter<File> filter )
     {
         this.filter = filter;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean accept ( final FileTreeNode object )
+    public boolean accept ( @NotNull final FileTreeNode object )
     {
         return filter.accept ( object.getFile () );
     }

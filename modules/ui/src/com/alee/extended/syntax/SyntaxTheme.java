@@ -17,9 +17,10 @@
 
 package com.alee.extended.syntax;
 
-import com.alee.managers.log.Log;
+import com.alee.api.annotations.NotNull;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.Theme;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.IOException;
@@ -29,7 +30,6 @@ import java.io.IOException;
  *
  * @author Mikle Garin
  */
-
 public enum SyntaxTheme
 {
     /**
@@ -57,6 +57,7 @@ public enum SyntaxTheme
      *
      * @return theme icon
      */
+    @NotNull
     public Icon getIcon ()
     {
         return new ImageIcon ( SyntaxTheme.class.getResource ( "icons/" + this + ".png" ) );
@@ -67,29 +68,38 @@ public enum SyntaxTheme
      *
      * @return theme name
      */
+    @NotNull
     public String getName ()
     {
+        final String name;
         switch ( this )
         {
-            case idea:
-                return "IntelliJ IDEA";
-            case dark:
-                return "Dark";
-            case vs:
-                return "Visual Studio";
-            case eclipse:
-                return "Eclipse";
             default:
-                return null;
+            case idea:
+                name = "IntelliJ IDEA";
+                break;
+
+            case dark:
+                name = "Dark";
+                break;
+
+            case vs:
+                name = "Visual Studio";
+                break;
+
+            case eclipse:
+                name = "Eclipse";
+                break;
         }
+        return name;
     }
 
     /**
-     * Applies theme to WebSyntaxArea.
+     * Applies theme to {@link WebSyntaxArea}.
      *
-     * @param syntaxArea WebSyntaxArea
+     * @param syntaxArea {@link WebSyntaxArea}
      */
-    public void apply ( final RSyntaxTextArea syntaxArea )
+    public void apply ( @NotNull final RSyntaxTextArea syntaxArea )
     {
         try
         {
@@ -97,7 +107,7 @@ public enum SyntaxTheme
         }
         catch ( final IOException e )
         {
-            Log.error ( this, e );
+            LoggerFactory.getLogger ( SyntaxTheme.class ).error ( e.toString (), e );
         }
     }
 }

@@ -17,10 +17,19 @@
 
 package com.alee.utils.swing.menu;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.resource.ClassResource;
+import com.alee.api.resource.FileResource;
+import com.alee.api.resource.Resource;
+import com.alee.api.resource.UrlResource;
 import com.alee.laf.menu.*;
 import com.alee.managers.hotkey.HotkeyData;
 import com.alee.managers.language.LM;
-import com.alee.managers.log.Log;
+import com.alee.managers.style.StyleId;
+import com.alee.utils.ImageUtils;
+import com.alee.utils.TextUtils;
+import com.alee.utils.UtilityException;
 import com.alee.utils.swing.UnselectableButtonGroup;
 
 import javax.swing.*;
@@ -30,70 +39,76 @@ import java.io.File;
 import java.net.URL;
 
 /**
- * This is a base generator class for custom menu generators.
- * Menu generators are made to simplify various Swing menues creation.
- * Possible menu types: WebMenuBar, WebPopupMenu and WebMenu
+ * Base class for custom menu generators.
+ * Menu generators shorten various menus creation code and make it much more convenient to read and support.
  *
+ * There are implementations for next menu types:
+ * {@link WebMenuBar} - {@link MenuBarGenerator}
+ * {@link WebMenu} - {@link MenuGenerator}
+ * {@link WebPopupMenu} - {@link PopupMenuGenerator}
+ *
+ * @param <C> menu component type
  * @author Mikle Garin
- * @see com.alee.utils.swing.menu.MenuBarGenerator
- * @see com.alee.utils.swing.menu.MenuGenerator
- * @see com.alee.utils.swing.menu.PopupMenuGenerator
+ * @see MenuBarGenerator
+ * @see MenuGenerator
+ * @see PopupMenuGenerator
  */
-
-public abstract class AbstractMenuGenerator<E extends JComponent>
+public abstract class AbstractMenuGenerator<C extends JComponent>
 {
     /**
      * Default constants used within generator methods.
      */
+    protected static final StyleId defaultStyleId = StyleId.auto;
     protected static final Object defaultIcon = null;
     protected static final HotkeyData defaultHotkey = null;
     protected static final boolean defaultEnabled = true;
-    protected static final boolean defaultSelected = false;
     protected static final ActionListener defaultAction = null;
-
-    /**
-     * Default menu icons format.
-     */
-    protected static final String defaultIconFormat = ".png";
 
     /**
      * Class near which menu icons are placed.
      * In case it is null path is used as file system path.
      */
+    @Nullable
     protected Class nearClass;
 
     /**
      * Path to menu icons folder.
      * It is used as path relative to class in case nearClass variable is not null.
      */
+    @Nullable
     protected String path;
 
     /**
      * Menu icons format.
      */
+    @Nullable
     protected String extension;
 
     /**
      * Menu language key prefix.
      */
+    @Nullable
     protected String languagePrefix;
 
     /**
      * Buttons grouping.
      */
+    @Nullable
     protected UnselectableButtonGroup group;
 
     /**
-     * Menu component.
+     * Menu {@link JComponent}.
      */
-    protected E menu;
+    @NotNull
+    protected final C menu;
 
     /**
      * Constructs new menu generator with the specified menu component.
+     *
+     * @param menu base menu component
      */
-    public AbstractMenuGenerator ( final E menu )
+    public AbstractMenuGenerator ( @NotNull final C menu )
     {
-        super ();
         this.menu = menu;
     }
 
@@ -102,6 +117,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @return class near which menu icons are placed
      */
+    @Nullable
     public Class getNearClass ()
     {
         return nearClass;
@@ -112,7 +128,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @param nearClass class near which menu icons are placed
      */
-    public void setNearClass ( final Class nearClass )
+    public void setNearClass ( @Nullable final Class nearClass )
     {
         this.nearClass = nearClass;
     }
@@ -122,6 +138,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @return path to menu icons folder relative to class
      */
+    @Nullable
     public String getPath ()
     {
         return path;
@@ -132,7 +149,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @param path path to menu icons folder relative to class
      */
-    public void setPath ( final String path )
+    public void setPath ( @Nullable final String path )
     {
         this.path = path;
     }
@@ -142,6 +159,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @return menu icons format
      */
+    @Nullable
     public String getExtension ()
     {
         return extension;
@@ -152,7 +170,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @param extension menu icons format
      */
-    public void setExtension ( final String extension )
+    public void setExtension ( @Nullable final String extension )
     {
         this.extension = extension == null ? null : extension.startsWith ( "." ) ? extension : "." + extension;
     }
@@ -163,11 +181,9 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      * @param path      path to menu icons folder in file system
      * @param extension menu icons format
      */
-    public void setIconSettings ( final String path, final String extension )
+    public void setIconSettings ( @Nullable final String path, @Nullable final String extension )
     {
-        this.nearClass = null;
-        this.path = path;
-        this.extension = extension;
+        setIconSettings ( null, path, extension );
     }
 
     /**
@@ -177,11 +193,11 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      * @param path      path to menu icons folder relative to class
      * @param extension menu icons format
      */
-    public void setIconSettings ( final Class nearClass, final String path, final String extension )
+    public void setIconSettings ( @Nullable final Class nearClass, @Nullable final String path, @Nullable final String extension )
     {
-        this.nearClass = nearClass;
-        this.path = path;
-        this.extension = extension;
+        setNearClass ( nearClass );
+        setPath ( path );
+        setExtension ( extension );
     }
 
     /**
@@ -189,6 +205,7 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      *
      * @return menu language key prefix
      */
+    @Nullable
     public String getLanguagePrefix ()
     {
         return languagePrefix;
@@ -196,12 +213,13 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
 
     /**
      * Sets menu language key prefix.
+     * todo Update all existing items?
      *
      * @param prefix menu language key prefix
      */
-    public void setLanguagePrefix ( final String prefix )
+    public void setLanguagePrefix ( @Nullable final String prefix )
     {
-        this.languagePrefix = prefix;
+        this.languagePrefix = TextUtils.notEmpty ( prefix ) ? prefix : null;
     }
 
     /**
@@ -210,25 +228,1225 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      * @param text menu item name or text
      * @return menu item language key for the specified name
      */
-    public String getLanguageKey ( final String text )
+    @Nullable
+    public String getLanguageKey ( @Nullable final String text )
     {
-        if ( languagePrefix == null )
+        final String languageKey;
+        if ( text != null )
         {
-            return text;
+            final String prefix = getLanguagePrefix ();
+            if ( prefix != null )
+            {
+                final String key = prefix + "." + text;
+                languageKey = LM.containsText ( key ) ? key : text;
+            }
+            else
+            {
+                languageKey = text;
+            }
         }
         else
         {
-            final String key = languagePrefix + "." + text;
-            return LM.contains ( key ) ? key : text;
+            languageKey = null;
         }
+        return languageKey;
     }
 
     /**
-     * Adds separator into menu.
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param text           {@link WebMenuItem} text
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final String text, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, defaultIcon, text, defaultHotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, defaultIcon, text, hotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param text           {@link WebMenuItem} text
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final String text, final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, defaultIcon, text, defaultHotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final String text, @Nullable final HotkeyData hotkey, final boolean enabled,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, defaultIcon, text, hotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final Object icon, @Nullable final String text, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, icon, text, defaultHotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final Object icon, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, icon, text, hotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final Object icon, @Nullable final String text, final boolean enabled,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, icon, text, defaultHotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @Nullable final Object icon, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                 final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( defaultStyleId, icon, text, hotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param text           {@link WebMenuItem} text
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, defaultIcon, text, defaultHotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, defaultIcon, text, hotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param text           {@link WebMenuItem} text
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final String text, final boolean enabled,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, defaultIcon, text, defaultHotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                 final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, defaultIcon, text, hotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, icon, text, defaultHotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                 @Nullable final HotkeyData hotkey, @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, icon, text, hotkey, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text, final boolean enabled,
+                                 @Nullable final ActionListener actionListener )
+    {
+        return addItem ( id, icon, text, defaultHotkey, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenuItem} into menu.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    public WebMenuItem addItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                 @Nullable final HotkeyData hotkey, final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        final WebMenuItem item = createItem ( id, icon, text, hotkey, enabled, actionListener );
+        getMenu ().add ( item );
+        return item;
+    }
+
+    /**
+     * Returns newly created {@link WebMenuItem}.
+     *
+     * @param id             {@link WebMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenuItem} text
+     * @param hotkey         {@link WebMenuItem} accelerator
+     * @param enabled        whether {@link WebMenuItem} is enabled or not
+     * @param actionListener {@link WebMenuItem} {@link ActionListener}
+     * @return newly created {@link WebMenuItem}
+     */
+    @NotNull
+    protected WebMenuItem createItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                       @Nullable final HotkeyData hotkey, final boolean enabled,
+                                       @Nullable final ActionListener actionListener )
+    {
+        final WebMenuItem item = new WebMenuItem ( id, getLanguageKey ( text ) );
+        item.setIcon ( getIcon ( icon ) );
+        item.setAccelerator ( hotkey );
+        item.setEnabled ( enabled );
+        if ( actionListener != null )
+        {
+            item.addActionListener ( actionListener );
+        }
+        return item;
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final String text, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, defaultIcon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final String text, @Nullable final HotkeyData hotkey, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, defaultIcon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final String text, final boolean enabled, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, defaultIcon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final String text, @Nullable final HotkeyData hotkey, final boolean enabled,
+                                              final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, defaultIcon, text, hotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final Object icon, @Nullable final String text, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, icon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final Object icon, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                              final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, icon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final Object icon, @Nullable final String text, final boolean enabled,
+                                              final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, icon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @Nullable final Object icon, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                              final boolean enabled, final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( defaultStyleId, icon, text, hotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final String text, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, defaultIcon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                              final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, defaultIcon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final String text, final boolean enabled,
+                                              final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, defaultIcon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                              final boolean enabled, final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, defaultIcon, text, hotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                              final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, icon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                              @Nullable final HotkeyData hotkey, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, icon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                              final boolean enabled, final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addCheckItem ( id, icon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebCheckBoxMenuItem} into menu.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    public WebCheckBoxMenuItem addCheckItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                              @Nullable final HotkeyData hotkey, final boolean enabled, final boolean selected,
+                                              @Nullable final ActionListener actionListener )
+    {
+        final WebCheckBoxMenuItem item = createCheckItem ( id, icon, text, hotkey, enabled, selected, actionListener );
+        getMenu ().add ( item );
+        return item;
+    }
+
+    /**
+     * Returns newly created {@link WebCheckBoxMenuItem}.
+     *
+     * @param id             {@link WebCheckBoxMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebCheckBoxMenuItem} text
+     * @param hotkey         {@link WebCheckBoxMenuItem} accelerator
+     * @param enabled        whether {@link WebCheckBoxMenuItem} is enabled or not
+     * @param selected       whether {@link WebCheckBoxMenuItem} is selected or not
+     * @param actionListener {@link WebCheckBoxMenuItem} {@link ActionListener}
+     * @return newly created {@link WebCheckBoxMenuItem}
+     */
+    @NotNull
+    protected WebCheckBoxMenuItem createCheckItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                                    @Nullable final HotkeyData hotkey, final boolean enabled, final boolean selected,
+                                                    @Nullable final ActionListener actionListener )
+    {
+        final WebCheckBoxMenuItem item = new WebCheckBoxMenuItem ( id, getLanguageKey ( text ) );
+        final Icon resolvedIcon = getIcon ( icon );
+        if ( resolvedIcon != null )
+        {
+            item.setIcon ( resolvedIcon );
+        }
+        item.setAccelerator ( hotkey );
+        item.setEnabled ( enabled );
+        item.setSelected ( selected );
+        if ( actionListener != null )
+        {
+            item.addActionListener ( actionListener );
+        }
+        if ( isGroupOpen () )
+        {
+            group ( item );
+        }
+        return item;
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final String text, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, defaultIcon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final String text, @Nullable final HotkeyData hotkey, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, defaultIcon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final String text, final boolean enabled, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, defaultIcon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final String text, @Nullable final HotkeyData hotkey, final boolean enabled,
+                                                 final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, defaultIcon, text, hotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final Object icon, @Nullable final String text, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, icon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final Object icon, @Nullable final String text,
+                                                 @Nullable final HotkeyData hotkey, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, icon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final Object icon, @Nullable final String text, final boolean enabled,
+                                                 final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, icon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @Nullable final Object icon, @Nullable final String text,
+                                                 @Nullable final HotkeyData hotkey, final boolean enabled, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( defaultStyleId, icon, text, hotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final String text, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, defaultIcon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                                 final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, defaultIcon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final String text, final boolean enabled,
+                                                 final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, defaultIcon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final String text, @Nullable final HotkeyData hotkey,
+                                                 final boolean enabled, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, defaultIcon, text, hotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                                 final boolean selected, @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, icon, text, defaultHotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                                 @Nullable final HotkeyData hotkey, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, icon, text, hotkey, defaultEnabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                                 final boolean enabled, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        return addRadioItem ( id, icon, text, defaultHotkey, enabled, selected, actionListener );
+    }
+
+    /**
+     * Adds {@link WebRadioButtonMenuItem} into menu.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    public WebRadioButtonMenuItem addRadioItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                                 @Nullable final HotkeyData hotkey, final boolean enabled, final boolean selected,
+                                                 @Nullable final ActionListener actionListener )
+    {
+        final WebRadioButtonMenuItem item = createRadioItem ( id, icon, text, hotkey, enabled, selected, actionListener );
+        getMenu ().add ( item );
+        return item;
+    }
+
+    /**
+     * Returns newly created {@link WebRadioButtonMenuItem}.
+     *
+     * @param id             {@link WebRadioButtonMenuItem} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebRadioButtonMenuItem} text
+     * @param hotkey         {@link WebRadioButtonMenuItem} accelerator
+     * @param enabled        whether {@link WebRadioButtonMenuItem} is enabled or not
+     * @param selected       whether {@link WebRadioButtonMenuItem} is selected or not
+     * @param actionListener {@link WebRadioButtonMenuItem} {@link ActionListener}
+     * @return newly created {@link WebRadioButtonMenuItem}
+     */
+    @NotNull
+    protected WebRadioButtonMenuItem createRadioItem ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                                       @Nullable final HotkeyData hotkey, final boolean enabled, final boolean selected,
+                                                       @Nullable final ActionListener actionListener )
+    {
+        final WebRadioButtonMenuItem item = new WebRadioButtonMenuItem ( id, getLanguageKey ( text ) );
+        final Icon resolvedIcon = getIcon ( icon );
+        if ( resolvedIcon != null )
+        {
+            item.setIcon ( resolvedIcon );
+        }
+        item.setAccelerator ( hotkey );
+        item.setEnabled ( enabled );
+        item.setSelected ( selected );
+        if ( actionListener != null )
+        {
+            item.addActionListener ( actionListener );
+        }
+        if ( isGroupOpen () )
+        {
+            group ( item );
+        }
+        return item;
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param text {@link WebMenu} text
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final String text )
+    {
+        return addSubMenu ( defaultStyleId, defaultIcon, text, defaultEnabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param text    {@link WebMenu} text
+     * @param enabled whether {@link WebMenu} is enabled or not
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final String text, final boolean enabled )
+    {
+        return addSubMenu ( defaultStyleId, defaultIcon, text, enabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param text           {@link WebMenu} text
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final String text, @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( defaultStyleId, defaultIcon, text, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param text           {@link WebMenu} text
+     * @param enabled        whether {@link WebMenu} is enabled or not
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final String text, final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( defaultStyleId, defaultIcon, text, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param icon either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text {@link WebMenu} text
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final Object icon, @Nullable final String text )
+    {
+        return addSubMenu ( defaultStyleId, icon, text, defaultEnabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param icon    either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text    {@link WebMenu} text
+     * @param enabled whether {@link WebMenu} is enabled or not
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final Object icon, @Nullable final String text, final boolean enabled )
+    {
+        return addSubMenu ( defaultStyleId, icon, text, enabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenu} text
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final Object icon, @Nullable final String text,
+                                      @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( defaultStyleId, icon, text, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenu} text
+     * @param enabled        whether {@link WebMenu} is enabled or not
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @Nullable final Object icon, @Nullable final String text, final boolean enabled,
+                                      @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( defaultStyleId, icon, text, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id   {@link WebMenu} {@link StyleId}
+     * @param text {@link WebMenu} text
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final String text )
+    {
+        return addSubMenu ( id, defaultIcon, text, defaultEnabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id      {@link WebMenu} {@link StyleId}
+     * @param text    {@link WebMenu} text
+     * @param enabled whether {@link WebMenu} is enabled or not
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final String text, final boolean enabled )
+    {
+        return addSubMenu ( id, defaultIcon, text, enabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id             {@link WebMenu} {@link StyleId}
+     * @param text           {@link WebMenu} text
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final String text,
+                                      @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( id, defaultIcon, text, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id             {@link WebMenu} {@link StyleId}
+     * @param text           {@link WebMenu} text
+     * @param enabled        whether {@link WebMenu} is enabled or not
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final String text, final boolean enabled,
+                                      @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( id, defaultIcon, text, enabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id   {@link WebMenu} {@link StyleId}
+     * @param icon either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text {@link WebMenu} text
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text )
+    {
+        return addSubMenu ( id, icon, text, defaultEnabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id      {@link WebMenu} {@link StyleId}
+     * @param icon    either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text    {@link WebMenu} text
+     * @param enabled whether {@link WebMenu} is enabled or not
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                      final boolean enabled )
+    {
+        return addSubMenu ( id, icon, text, enabled, defaultAction );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id             {@link WebMenu} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenu} text
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                      @Nullable final ActionListener actionListener )
+    {
+        return addSubMenu ( id, icon, text, defaultEnabled, actionListener );
+    }
+
+    /**
+     * Adds {@link WebMenu} into this {@link AbstractMenuGenerator}.
+     * Returned {@link MenuGenerator} will have the same settings as current one, but you can modify those later.
+     *
+     * @param id             {@link WebMenu} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenu} text
+     * @param enabled        whether {@link WebMenu} is enabled or not
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return {@link MenuGenerator} for newly created {@link WebMenu}
+     */
+    @NotNull
+    public MenuGenerator addSubMenu ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                      final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        final WebMenu menu = createSubMenu ( id, icon, text, enabled, actionListener );
+        getMenu ().add ( menu );
+
+        // Creating submenu generator
+        final MenuGenerator menuGenerator = new MenuGenerator ( menu );
+        menuGenerator.setIconSettings ( getNearClass (), getPath (), getExtension () );
+        menuGenerator.setLanguagePrefix ( getLanguagePrefix () );
+        return menuGenerator;
+    }
+
+    /**
+     * Returns newly created {@link WebMenu}.
+     *
+     * @param id             {@link WebMenu} {@link StyleId}
+     * @param icon           either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @param text           {@link WebMenu} text
+     * @param enabled        whether {@link WebMenu} is enabled or not
+     * @param actionListener {@link WebMenu} {@link ActionListener}
+     * @return newly created {@link WebMenu}
+     */
+    @NotNull
+    protected WebMenu createSubMenu ( @NotNull final StyleId id, @Nullable final Object icon, @Nullable final String text,
+                                      final boolean enabled, @Nullable final ActionListener actionListener )
+    {
+        final WebMenu menu = new WebMenu ( id, getLanguageKey ( text ) );
+        menu.setIcon ( getIcon ( icon ) );
+        menu.setEnabled ( enabled );
+        if ( actionListener != null )
+        {
+            menu.addActionListener ( actionListener );
+        }
+        return menu;
+    }
+
+    /**
+     * Adds separator into this {@link AbstractMenuGenerator}.
      */
     public void addSeparator ()
     {
-        final E menuComponent = getMenu ();
+        final C menuComponent = getMenu ();
         if ( menuComponent instanceof WebMenu )
         {
             ( ( WebMenu ) menuComponent ).addSeparator ();
@@ -239,337 +1457,13 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
         }
     }
 
-    public WebMenuItem addItem ( final String text, final ActionListener actionListener )
-    {
-        return addItem ( defaultIcon, text, defaultHotkey, defaultEnabled, actionListener );
-    }
-
-    public WebMenuItem addItem ( final String text, final HotkeyData hotkey, final ActionListener actionListener )
-    {
-        return addItem ( defaultIcon, text, hotkey, defaultEnabled, actionListener );
-    }
-
-    public WebMenuItem addItem ( final String text, final boolean enabled, final ActionListener actionListener )
-    {
-        return addItem ( defaultIcon, text, defaultHotkey, enabled, actionListener );
-    }
-
-    public WebMenuItem addItem ( final String text, final HotkeyData hotkey, final boolean enabled, final ActionListener actionListener )
-    {
-        return addItem ( defaultIcon, text, hotkey, enabled, actionListener );
-    }
-
-    public WebMenuItem addItem ( final Object icon, final String text, final ActionListener actionListener )
-    {
-        return addItem ( icon, text, defaultHotkey, defaultEnabled, actionListener );
-    }
-
-    public WebMenuItem addItem ( final Object icon, final String text, final HotkeyData hotkey, final ActionListener actionListener )
-    {
-        return addItem ( icon, text, hotkey, defaultEnabled, actionListener );
-    }
-
-    public WebMenuItem addItem ( final Object icon, final String text, final boolean enabled, final ActionListener actionListener )
-    {
-        return addItem ( icon, text, defaultHotkey, enabled, actionListener );
-    }
-
-    /**
-     * Adds simple item into menu.
-     *
-     * @param icon           menu item icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           menu item text
-     * @param hotkey         menu item accelerator
-     * @param enabled        whether menu item is enabled or not
-     * @param actionListener menu item action listener
-     * @return newly created menu item
-     */
-    public WebMenuItem addItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                 final ActionListener actionListener )
-    {
-        final WebMenuItem item = createItem ( icon, text, hotkey, enabled, actionListener );
-        getMenu ().add ( item );
-        return item;
-    }
-
-    /**
-     * Returns newly created menu item.
-     *
-     * @param icon           menu item icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           menu item text
-     * @param hotkey         menu item accelerator
-     * @param enabled        whether menu item is enabled or not
-     * @param actionListener menu item action listener
-     * @return newly created menu item
-     */
-    protected WebMenuItem createItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                       final ActionListener actionListener )
-    {
-        final WebMenuItem item = new WebMenuItem ();
-        item.setIcon ( getIcon ( icon ) );
-        item.setLanguage ( getLanguageKey ( text ) );
-        item.setAccelerator ( hotkey );
-        item.setEnabled ( enabled );
-        item.addActionListener ( actionListener );
-        return item;
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final String text, final boolean selected, final ActionListener actionListener )
-    {
-        return addCheckItem ( defaultIcon, text, defaultHotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final String text, final HotkeyData hotkey, final boolean selected,
-                                              final ActionListener actionListener )
-    {
-        return addCheckItem ( defaultIcon, text, hotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final String text, final boolean enabled, final boolean selected,
-                                              final ActionListener actionListener )
-    {
-        return addCheckItem ( defaultIcon, text, defaultHotkey, enabled, selected, actionListener );
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final String text, final HotkeyData hotkey, final boolean enabled, final boolean selected,
-                                              final ActionListener actionListener )
-    {
-        return addCheckItem ( defaultIcon, text, hotkey, enabled, selected, actionListener );
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final Object icon, final String text, final boolean selected,
-                                              final ActionListener actionListener )
-    {
-        return addCheckItem ( icon, text, defaultHotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean selected,
-                                              final ActionListener actionListener )
-    {
-        return addCheckItem ( icon, text, hotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebCheckBoxMenuItem addCheckItem ( final Object icon, final String text, final boolean enabled, final boolean selected,
-                                              final ActionListener actionListener )
-    {
-        return addCheckItem ( icon, text, defaultHotkey, enabled, selected, actionListener );
-    }
-
-    /**
-     * Adds checkbox menu item into menu.
-     *
-     * @param icon           checkbox menu item icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           checkbox menu item text
-     * @param hotkey         checkbox menu item accelerator
-     * @param enabled        whether checkbox menu item is enabled or not
-     * @param selected       whether checkbox menu item is selected or not
-     * @param actionListener checkbox menu item action listener
-     * @return newly created checkbox menu item
-     */
-    public WebCheckBoxMenuItem addCheckItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                              final boolean selected, final ActionListener actionListener )
-    {
-        final WebCheckBoxMenuItem item = createCheckItem ( icon, text, hotkey, enabled, selected, actionListener );
-        getMenu ().add ( item );
-        return item;
-    }
-
-    /**
-     * Returns newly created checkbox menu item.
-     *
-     * @param icon           checkbox menu item icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           checkbox menu item text
-     * @param hotkey         checkbox menu item accelerator
-     * @param enabled        whether checkbox menu item is enabled or not
-     * @param selected       whether checkbox menu item is selected or not
-     * @param actionListener checkbox menu item action listener
-     * @return newly created checkbox menu item
-     */
-    protected WebCheckBoxMenuItem createCheckItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                                    final boolean selected, final ActionListener actionListener )
-    {
-        final WebCheckBoxMenuItem item = new WebCheckBoxMenuItem ();
-        item.setIcon ( getIcon ( icon ) );
-        item.setLanguage ( getLanguageKey ( text ) );
-        item.setAccelerator ( hotkey );
-        item.setEnabled ( enabled );
-        item.setSelected ( selected );
-        item.addActionListener ( actionListener );
-        group ( item );
-        return item;
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final String text, final boolean selected, final ActionListener actionListener )
-    {
-        return addRadioItem ( defaultIcon, text, defaultHotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final String text, final HotkeyData hotkey, final boolean selected,
-                                                 final ActionListener actionListener )
-    {
-        return addRadioItem ( defaultIcon, text, hotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final String text, final boolean enabled, final boolean selected,
-                                                 final ActionListener actionListener )
-    {
-        return addRadioItem ( defaultIcon, text, defaultHotkey, enabled, selected, actionListener );
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final String text, final HotkeyData hotkey, final boolean enabled, final boolean selected,
-                                                 final ActionListener actionListener )
-    {
-        return addRadioItem ( defaultIcon, text, hotkey, enabled, selected, actionListener );
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final Object icon, final String text, final boolean selected,
-                                                 final ActionListener actionListener )
-    {
-        return addRadioItem ( icon, text, defaultHotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean selected,
-                                                 final ActionListener actionListener )
-    {
-        return addRadioItem ( icon, text, hotkey, defaultEnabled, selected, actionListener );
-    }
-
-    public WebRadioButtonMenuItem addRadioItem ( final Object icon, final String text, final boolean enabled, final boolean selected,
-                                                 final ActionListener actionListener )
-    {
-        return addRadioItem ( icon, text, defaultHotkey, enabled, selected, actionListener );
-    }
-
-    /**
-     * Adds radio button menu item into menu.
-     *
-     * @param icon           radio button menu item icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           radio button menu item text
-     * @param hotkey         radio button menu item accelerator
-     * @param enabled        whether radio button menu item is enabled or not
-     * @param selected       whether radio button menu item is selected or not
-     * @param actionListener radio button menu item action listener
-     * @return newly created radio button menu item
-     */
-    public WebRadioButtonMenuItem addRadioItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                                 final boolean selected, final ActionListener actionListener )
-    {
-        final WebRadioButtonMenuItem item = createRadioItem ( icon, text, hotkey, enabled, selected, actionListener );
-        getMenu ().add ( item );
-        return item;
-    }
-
-    /**
-     * Returns newly created radio button menu item.
-     *
-     * @param icon           radio button menu item icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           radio button menu item text
-     * @param hotkey         radio button menu item accelerator
-     * @param enabled        whether radio button menu item is enabled or not
-     * @param selected       whether radio button menu item is selected or not
-     * @param actionListener radio button menu item action listener
-     * @return newly created radio button menu item
-     */
-    protected WebRadioButtonMenuItem createRadioItem ( final Object icon, final String text, final HotkeyData hotkey, final boolean enabled,
-                                                       final boolean selected, final ActionListener actionListener )
-    {
-        final WebRadioButtonMenuItem item = new WebRadioButtonMenuItem ();
-        item.setIcon ( getIcon ( icon ) );
-        item.setLanguage ( getLanguageKey ( text ) );
-        item.setAccelerator ( hotkey );
-        item.setEnabled ( enabled );
-        item.setSelected ( selected );
-        item.addActionListener ( actionListener );
-        group ( item );
-        return item;
-    }
-
-    public MenuGenerator addSubMenu ( final String text )
-    {
-        return addSubMenu ( defaultIcon, text, defaultEnabled, defaultAction );
-    }
-
-    public MenuGenerator addSubMenu ( final String text, final boolean enabled )
-    {
-        return addSubMenu ( defaultIcon, text, enabled, defaultAction );
-    }
-
-    public MenuGenerator addSubMenu ( final String text, final ActionListener actionListener )
-    {
-        return addSubMenu ( defaultIcon, text, defaultEnabled, actionListener );
-    }
-
-    public MenuGenerator addSubMenu ( final String text, final boolean enabled, final ActionListener actionListener )
-    {
-        return addSubMenu ( defaultIcon, text, enabled, actionListener );
-    }
-
-    public MenuGenerator addSubMenu ( final Object icon, final String text )
-    {
-        return addSubMenu ( icon, text, defaultEnabled, defaultAction );
-    }
-
-    public MenuGenerator addSubMenu ( final Object icon, final String text, final boolean enabled )
-    {
-        return addSubMenu ( icon, text, enabled, defaultAction );
-    }
-
-    public MenuGenerator addSubMenu ( final Object icon, final String text, final ActionListener actionListener )
-    {
-        return addSubMenu ( icon, text, defaultEnabled, actionListener );
-    }
-
-    /**
-     * Adds menu item into menu.
-     * <p/>
-     * Returned menu generator will have the same settings as current one.
-     * You can modify them if you need though.
-     *
-     * @param icon           menu icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           menu text
-     * @param enabled        whether menu is enabled or not
-     * @param actionListener menu action listener
-     * @return menu generator for newly created menu
-     */
-    public MenuGenerator addSubMenu ( final Object icon, final String text, final boolean enabled, final ActionListener actionListener )
-    {
-        final WebMenu menu = createSubMenu ( icon, text, enabled, actionListener );
-        getMenu ().add ( menu );
-
-        // Creting sub-menu generator
-        final MenuGenerator menuGenerator = new MenuGenerator ( menu );
-        menuGenerator.setNearClass ( nearClass );
-        menuGenerator.setPath ( path );
-        menuGenerator.setExtension ( extension );
-        menuGenerator.setLanguagePrefix ( languagePrefix );
-        return menuGenerator;
-    }
-
-    /**
-     * Returns newly created menu.
-     *
-     * @param icon           menu icon, can be either String icon name, ImageIcon, Image, image File or image URL
-     * @param text           menu text
-     * @param enabled        whether menu is enabled or not
-     * @param actionListener menu action listener
-     * @return newly created menu
-     */
-    protected WebMenu createSubMenu ( final Object icon, final String text, final boolean enabled, final ActionListener actionListener )
-    {
-        final WebMenu menu = new WebMenu ();
-        menu.setIcon ( getIcon ( icon ) );
-        menu.setLanguage ( getLanguageKey ( text ) );
-        menu.setEnabled ( enabled );
-        menu.addActionListener ( actionListener );
-        return menu;
-    }
-
     /**
      * Starts grouping menu items.
      * All items created after this call and before {@code closeGroup()} call will get grouped.
      *
-     * @return buttons group used for grouping
+     * @return {@link UnselectableButtonGroup} used for grouping
      */
+    @NotNull
     public UnselectableButtonGroup openGroup ()
     {
         return openGroup ( false );
@@ -580,103 +1474,66 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      * All items created after this call and before {@code closeGroup()} call will get grouped.
      *
      * @param unselectable whether items should be unselectable or not
-     * @return buttons group used for grouping
+     * @return {@link UnselectableButtonGroup} used for grouping
      */
+    @NotNull
     public UnselectableButtonGroup openGroup ( final boolean unselectable )
     {
-        return group = new UnselectableButtonGroup ( unselectable );
+        group = new UnselectableButtonGroup ( unselectable );
+        return group;
     }
 
     /**
-     * Adds custom button into currently used buttons group.
+     * Returns whether or not {@link UnselectableButtonGroup} is currently used for grouping.
      *
-     * @param button custom button to add into buttons group
-     * @return buttons group used for grouping
+     * @return {@code true} if {@link UnselectableButtonGroup} is currently used for grouping, {@code false} otherwise
      */
-    public UnselectableButtonGroup group ( final AbstractButton button )
+    public boolean isGroupOpen ()
     {
-        if ( group != null )
+        return group != null;
+    }
+
+    /**
+     * Adds specified {@link AbstractButton} into currently used {@link UnselectableButtonGroup}.
+     *
+     * @param button {@link AbstractButton} to add into {@link UnselectableButtonGroup}
+     * @return {@link UnselectableButtonGroup} used for grouping
+     */
+    @NotNull
+    public UnselectableButtonGroup group ( @NotNull final AbstractButton button )
+    {
+        if ( group == null )
         {
-            group.add ( button );
+            throw new UtilityException ( "Button group must be opened first" );
         }
+        group.add ( button );
         return group;
     }
 
     /**
      * Finishes grouping menu items.
      *
-     * @return buttons group used for grouping
+     * @return {@link UnselectableButtonGroup} used for grouping
      */
+    @NotNull
     public UnselectableButtonGroup closeGroup ()
     {
+        if ( group == null )
+        {
+            throw new UtilityException ( "Button group must be opened first" );
+        }
         final UnselectableButtonGroup group = this.group;
         this.group = null;
         return group;
     }
 
     /**
-     * Returns icon for the specified name.
+     * Returns menu {@link JComponent}.
      *
-     * @param icon can be either String icon name, ImageIcon, Image, image File or image URL
-     * @return icon for the specified name
+     * @return menu {@link JComponent}
      */
-    public ImageIcon getIcon ( final Object icon )
-    {
-        if ( icon != null )
-        {
-            if ( icon instanceof String )
-            {
-                try
-                {
-                    if ( nearClass != null )
-                    {
-                        return new ImageIcon ( nearClass.getResource ( path + icon + extension ) );
-                    }
-                    else
-                    {
-                        return new ImageIcon ( new File ( path, icon + extension ).getAbsolutePath () );
-                    }
-                }
-                catch ( final Throwable e )
-                {
-                    Log.warn ( "Unable to find menu icon for path: " + path + icon + extension, e );
-                    return null;
-                }
-            }
-            else if ( icon instanceof ImageIcon )
-            {
-                return ( ImageIcon ) icon;
-            }
-            else if ( icon instanceof Image )
-            {
-                return new ImageIcon ( ( Image ) icon );
-            }
-            else if ( icon instanceof File )
-            {
-                return new ImageIcon ( ( ( File ) icon ).getAbsolutePath () );
-            }
-            else if ( icon instanceof URL )
-            {
-                return new ImageIcon ( ( URL ) icon );
-            }
-            else
-            {
-                Log.warn ( "Unknown icon object type provided: " + icon );
-                return null;
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    /**
-     * Returns menu component.
-     *
-     * @return menu component
-     */
-    public E getMenu ()
+    @NotNull
+    public C getMenu ()
     {
         return menu;
     }
@@ -688,6 +1545,73 @@ public abstract class AbstractMenuGenerator<E extends JComponent>
      */
     public boolean isEmpty ()
     {
-        return menu.getComponentCount () == 0;
+        return getMenu ().getComponentCount () == 0;
+    }
+
+    /**
+     * Returns {@link Icon} for the specified source {@link Object}.
+     *
+     * @param icon either {@link Icon}, {@link Image}, {@link Resource}, path, {@link File} or {@link URL}
+     * @return {@link Icon} for the specified source {@link Object}
+     */
+    @Nullable
+    protected Icon getIcon ( @Nullable final Object icon )
+    {
+        final Icon result;
+        if ( icon != null )
+        {
+            if ( icon instanceof Icon )
+            {
+                result = ( Icon ) icon;
+            }
+            else if ( icon instanceof Image )
+            {
+                result = new ImageIcon ( ( Image ) icon );
+            }
+            else
+            {
+                final Resource resource;
+                if ( icon instanceof Resource )
+                {
+                    resource = ( Resource ) icon;
+                }
+                else if ( icon instanceof String )
+                {
+                    try
+                    {
+                        if ( getNearClass () != null )
+                        {
+                            resource = new ClassResource ( getNearClass (), getPath () + icon + getExtension () );
+                        }
+                        else
+                        {
+                            resource = new FileResource ( new File ( getPath (), icon + getExtension () ) );
+                        }
+                    }
+                    catch ( final Exception e )
+                    {
+                        throw new UtilityException ( "Unable to find menu icon for path: " + getPath () + icon + getExtension (), e );
+                    }
+                }
+                else if ( icon instanceof File )
+                {
+                    resource = new FileResource ( ( File ) icon );
+                }
+                else if ( icon instanceof URL )
+                {
+                    resource = new UrlResource ( ( URL ) icon );
+                }
+                else
+                {
+                    throw new UtilityException ( "Unknown icon object type provided: " + icon );
+                }
+                result = ImageUtils.loadImageIcon ( resource );
+            }
+        }
+        else
+        {
+            result = null;
+        }
+        return result;
     }
 }

@@ -17,143 +17,107 @@
 
 package com.alee.laf.checkbox;
 
-import com.alee.extended.checkbox.CheckState;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.painter.decoration.DecorationException;
+import com.alee.painter.decoration.IDecoration;
+import com.alee.painter.decoration.content.AbstractContent;
+import com.alee.utils.GraphicsUtils;
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 
+import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.GeneralPath;
 
 /**
- * Special class that represents checkbox icon.
- * It can be used to render checkbox component icon.
+ * Checked state icon content for {@link AbstractButton} component.
  *
+ * @param <C> component type
+ * @param <D> decoration type
+ * @param <I> content type
  * @author Mikle Garin
  */
-
-public abstract class CheckIcon
+@XStreamAlias ( "CheckIcon" )
+public class CheckIcon<C extends AbstractButton, D extends IDecoration<C, D>, I extends CheckIcon<C, D, I>> extends AbstractContent<C, D, I>
 {
     /**
-     * Whether should paint enabled check icon or not.
+     * Shape {@link Stroke}.
      */
-    protected boolean enabled = true;
+    @Nullable
+    @XStreamAsAttribute
+    protected Stroke stroke;
 
     /**
-     * Currently active state.
+     * Shape {@link Color}.
      */
-    protected CheckState state = CheckState.unchecked;
+    @Nullable
+    @XStreamAsAttribute
+    protected Color color;
 
-    /**
-     * Next active state.
-     * Not null only while transition is in progress.
-     */
-    protected CheckState nextState = null;
-
-    /**
-     * Returns whether should paint enabled check icon or not.
-     *
-     * @return true if should paint enabled check icon, false otherwise
-     */
-    public boolean isEnabled ()
+    @NotNull
+    @Override
+    public String getId ()
     {
-        return enabled;
+        return id != null ? id : "check";
+    }
+
+    @Override
+    public boolean isEmpty ( @NotNull final C c, @NotNull final D d )
+    {
+        return false;
     }
 
     /**
-     * Sets whether should paint enabled check icon or not.
+     * Returns shape {@link Stroke}.
      *
-     * @param enabled whether should paint enabled check icon or not
+     * @param c {@link AbstractButton} that is being painted
+     * @param d {@link IDecoration} state
+     * @return shape {@link Stroke}
      */
-    public void setEnabled ( final boolean enabled )
+    @Nullable
+    public Stroke getStroke ( @NotNull final C c, @NotNull final D d )
     {
-        this.enabled = enabled;
+        return stroke;
     }
 
     /**
-     * Returns currently active state.
+     * Returns shape {@link Color}.
      *
-     * @return currently active state
+     * @param c {@link AbstractButton} that is being painted
+     * @param d {@link IDecoration} state
+     * @return shape {@link Color}
      */
-    public CheckState getState ()
+    @NotNull
+    public Color getColor ( @NotNull final C c, @NotNull final D d )
     {
-        return state;
+        if ( color == null )
+        {
+            throw new DecorationException ( "Shape color must be specified" );
+        }
+        return color;
     }
 
-    /**
-     * Sets currently active check state.
-     *
-     * @param state new active check state
-     */
-    public void setState ( final CheckState state )
+    @Override
+    protected void paintContent ( @NotNull final Graphics2D g2d, @NotNull final C c, @NotNull final D d, @NotNull final Rectangle bounds )
     {
-        this.state = state;
-        this.nextState = null;
-        resetStep ();
+        final Stroke os = GraphicsUtils.setupStroke ( g2d, stroke, stroke != null );
+        final Paint op = GraphicsUtils.setupPaint ( g2d, color );
+
+        final GeneralPath gp = new GeneralPath ();
+        gp.moveTo ( bounds.x + bounds.width * 0.1875, bounds.y + bounds.height * 0.375 );
+        gp.lineTo ( bounds.x + bounds.width * 0.4575, bounds.y + bounds.height * 0.6875 );
+        gp.lineTo ( bounds.x + bounds.width * 0.875, bounds.y + bounds.height * 0.125 );
+        g2d.draw ( gp );
+
+        GraphicsUtils.restorePaint ( g2d, op );
+        GraphicsUtils.restoreStroke ( g2d, os );
     }
 
-    /**
-     * Returns next active state.
-     *
-     * @return next active state
-     */
-    public CheckState getNextState ()
+    @NotNull
+    @Override
+    protected Dimension getContentPreferredSize ( @NotNull final C c, @NotNull final D d, @NotNull final Dimension available )
     {
-        return nextState;
+        return new Dimension ( 0, 0 );
     }
-
-    /**
-     * Sets next active state.
-     *
-     * @param nextState next active state
-     */
-    public void setNextState ( CheckState nextState )
-    {
-        this.state = this.nextState != null ? this.nextState : this.state;
-        this.nextState = nextState;
-    }
-
-    /**
-     * Displays next step toward the next active state.
-     */
-    public abstract void doStep ();
-
-    /**
-     * Resets steps according to currently set state and next state.
-     */
-    public abstract void resetStep ();
-
-    /**
-     * Returns whether current transition has reached its end or not.
-     *
-     * @return true if current transition has reached its end, false otherwise
-     */
-    public abstract boolean isTransitionCompleted ();
-
-    /**
-     * Finishes transition.
-     */
-    public abstract void finishTransition ();
-
-    /**
-     * Returns check icon width.
-     *
-     * @return check icon width
-     */
-    public abstract int getIconWidth ();
-
-    /**
-     * Returns check icon height.
-     *
-     * @return check icon height
-     */
-    public abstract int getIconHeight ();
-
-    /**
-     * Paints check icon in the specified bounds.
-     *
-     * @param c   component to paint check icon onto
-     * @param g2d graphics context
-     * @param x   icon X coordinate
-     * @param y   icon Y coordinate
-     * @param w   icon width
-     * @param h   icon height
-     */
-    public abstract void paintIcon ( Component c, Graphics2D g2d, int x, int y, int w, int h );
 }

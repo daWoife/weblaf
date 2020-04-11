@@ -17,23 +17,26 @@
 
 package com.alee.laf.tree;
 
+import com.alee.api.Identifiable;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
 import com.alee.utils.ReflectUtils;
 import com.alee.utils.TextUtils;
 
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreePath;
-import java.io.Serializable;
-
 /**
- * This class provides a custom node with a specific ID.
- * This node is used in various WebLookAndFeel tree components to properly save selections and expansion states.
- * This node might also be used for some advanced cases like asynchronous tree.
+ * Custom {@link javax.swing.tree.MutableTreeNode} implementation for {@link com.alee.extended.tree.WebExTree}.
+ * This node always contains an identifier unique within its tree component model.
  *
+ * @param <N> tree node type
+ * @param <T> stored object type
  * @author Mikle Garin
  */
-
-public class UniqueNode extends DefaultMutableTreeNode implements Serializable
+public class UniqueNode<N extends UniqueNode<N, T>, T> extends WebTreeNode<N, T> implements Identifiable
 {
+    /**
+     * todo 1. Make a better identifier initialization and ensure it doesn't break things
+     */
+
     /**
      * Prefix for node ID.
      */
@@ -42,6 +45,7 @@ public class UniqueNode extends DefaultMutableTreeNode implements Serializable
     /**
      * Unique node ID.
      */
+    @NotNull
     protected String id;
 
     /**
@@ -49,31 +53,29 @@ public class UniqueNode extends DefaultMutableTreeNode implements Serializable
      */
     public UniqueNode ()
     {
-        super ();
-        setId ();
+        this ( TextUtils.generateId ( ID_PREFIX ), null );
     }
 
     /**
      * Costructs a node with a specified user object.
      *
-     * @param userObject custom user object
+     * @param userObject optional node {@link Object}
      */
-    public UniqueNode ( final Object userObject )
+    public UniqueNode ( @Nullable final T userObject )
     {
-        super ( userObject );
-        setId ();
+        this ( TextUtils.generateId ( ID_PREFIX ), userObject );
     }
 
     /**
      * Costructs a node with a specified user object and node ID.
      *
-     * @param id         node ID
-     * @param userObject custom user object
+     * @param id         unique node identifier
+     * @param userObject optional node {@link Object}
      */
-    public UniqueNode ( final String id, final Object userObject )
+    public UniqueNode ( @NotNull final String id, @Nullable final T userObject )
     {
         super ( userObject );
-        setId ( id );
+        this.id = id;
     }
 
     /**
@@ -81,12 +83,10 @@ public class UniqueNode extends DefaultMutableTreeNode implements Serializable
      *
      * @return node ID
      */
+    @NotNull
+    @Override
     public String getId ()
     {
-        if ( id == null )
-        {
-            setId ();
-        }
         return id;
     }
 
@@ -95,36 +95,9 @@ public class UniqueNode extends DefaultMutableTreeNode implements Serializable
      *
      * @param id new node ID
      */
-    public void setId ( final String id )
+    public void setId ( @NotNull final String id )
     {
         this.id = id;
-    }
-
-    /**
-     * Changes node ID to new random ID.
-     */
-    protected void setId ()
-    {
-        this.id = TextUtils.generateId ( ID_PREFIX );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public UniqueNode getParent ()
-    {
-        return ( UniqueNode ) super.getParent ();
-    }
-
-    /**
-     * Returns TreePath for this node.
-     *
-     * @return TreePath for this node
-     */
-    public TreePath getTreePath ()
-    {
-        return new TreePath ( getPath () );
     }
 
     /**
@@ -132,6 +105,7 @@ public class UniqueNode extends DefaultMutableTreeNode implements Serializable
      *
      * @return text node representation
      */
+    @Nullable
     @Override
     public String toString ()
     {

@@ -17,115 +17,259 @@
 
 package com.alee.utils.swing;
 
+import com.alee.api.annotations.NotNull;
 import com.alee.utils.CollectionUtils;
+import com.alee.utils.ReflectUtils;
 
 import javax.swing.*;
-import java.util.ArrayList;
+import javax.swing.event.EventListenerList;
+import java.awt.*;
 import java.util.List;
 
 /**
+ * Custom button group that allows empty selection state.
+ * It can also contain custom {@link ButtonGroupListener} to receive
+ *
  * @author Mikle Garin
  */
-
 public class UnselectableButtonGroup extends ButtonGroup
 {
-    private final List<ButtonGroupListener> listeners = new ArrayList<ButtonGroupListener> ( 1 );
+    /**
+     * Group selection change listeners.
+     */
+    @NotNull
+    protected final EventListenerList listeners = new EventListenerList ();
 
-    private boolean unselectable = true;
+    /**
+     * Whether or not this button group should allow empty selection state.
+     */
+    protected boolean unselectable;
 
+    /**
+     * Constructs new button group.
+     */
     public UnselectableButtonGroup ()
     {
         super ();
     }
 
-    public UnselectableButtonGroup ( final AbstractButton... buttons )
+    /**
+     * Constructs new {@link UnselectableButtonGroup} and adds specified {@link AbstractButton}s into it.
+     *
+     * @param buttons {@link AbstractButton}s to group
+     */
+    public UnselectableButtonGroup ( @NotNull final AbstractButton... buttons )
     {
-        super ();
+        this ( true );
         add ( buttons );
     }
 
-    public UnselectableButtonGroup ( final List<AbstractButton> buttons )
+    /**
+     * Constructs new {@link UnselectableButtonGroup} and adds all {@link AbstractButton}s from the specified {@link Container} into it.
+     *
+     * @param buttons {@link List} of {@link AbstractButton}s to group
+     */
+    public UnselectableButtonGroup ( @NotNull final List<AbstractButton> buttons )
     {
-        super ();
+        this ( true );
         add ( buttons );
     }
 
+    /**
+     * Constructs new {@link UnselectableButtonGroup} and adds specified buttons.
+     *
+     * @param container {@link Container} to find {@link AbstractButton}s to group in
+     */
+    public UnselectableButtonGroup ( @NotNull final Container container )
+    {
+        this ( true );
+        add ( container );
+    }
+
+    /**
+     * Constructs new button group.
+     *
+     * @param unselectable whether or not this button group should allow empty selection state
+     */
     public UnselectableButtonGroup ( final boolean unselectable )
     {
         super ();
         setUnselectable ( unselectable );
     }
 
+    /**
+     * Returns all buttons added into this group.
+     *
+     * @return all buttons added into this group
+     */
+    @NotNull
+    public List<AbstractButton> getButtons ()
+    {
+        return CollectionUtils.copy ( buttons );
+    }
+
+    /**
+     * Adds all specified {@link AbstractButton}s into this {@link UnselectableButtonGroup}.
+     *
+     * @param buttons {@link AbstractButton}s to group
+     */
+    public void add ( @NotNull final AbstractButton... buttons )
+    {
+        for ( final AbstractButton button : buttons )
+        {
+            add ( button );
+        }
+    }
+
+    /**
+     * Adds all specified {@link AbstractButton}s into this {@link UnselectableButtonGroup}.
+     *
+     * @param buttons {@link List} of {@link AbstractButton}s to group
+     */
+    public void add ( @NotNull final List<AbstractButton> buttons )
+    {
+        for ( final AbstractButton button : buttons )
+        {
+            add ( button );
+        }
+    }
+
+    /**
+     * Adds all {@link AbstractButton}s from the specified {@link Container} into this {@link UnselectableButtonGroup}.
+     *
+     * @param container {@link Container} to find {@link AbstractButton}s to group in
+     */
+    public void add ( @NotNull final Container container )
+    {
+        for ( int i = 0; i < container.getComponentCount (); i++ )
+        {
+            final Component component = container.getComponent ( i );
+            if ( component instanceof AbstractButton )
+            {
+                add ( ( AbstractButton ) component );
+            }
+        }
+    }
+
+    /**
+     * Removes all buttons from the group.
+     * Button selection is kept intact upon removal.
+     */
+    public void removeAll ()
+    {
+        for ( int i = buttons.size () - 1; i >= 0; i-- )
+        {
+            final AbstractButton b = buttons.get ( i );
+            buttons.remove ( i );
+            b.getModel ().setGroup ( null );
+        }
+        ReflectUtils.setFieldValueSafely ( this, "selection", null );
+    }
+
+    /**
+     * Returns whether or not this button group allows empty selection state.
+     *
+     * @return true if this button group allows empty selection state, false otherwise
+     */
     public boolean isUnselectable ()
     {
         return unselectable;
     }
 
+    /**
+     * Sets whether or not this button group should allow empty selection state.
+     *
+     * @param unselectable whether or not this button group should allow empty selection state
+     */
     public void setUnselectable ( final boolean unselectable )
     {
         this.unselectable = unselectable;
     }
 
     @Override
-    public void setSelected ( final ButtonModel model, final boolean selected )
+    public void setSelected ( @NotNull final ButtonModel model, final boolean selected )
     {
-        if ( selected || !unselectable )
+        if ( selected != model.isSelected () )
         {
-            super.setSelected ( model, selected );
+            if ( selected || !unselectable )
+            {
+                super.setSelected ( model, selected );
+            }
+            else
+            {
+                clearSelection ();
+            }
+            fireSelectionChanged ();
         }
-        else
-        {
-            clearSelection ();
-        }
-        fireSelectionChanged ();
     }
 
-    public List<AbstractButton> getButtons ()
+    /**
+     * Adds {@link ButtonGroupListener}.
+     *
+     * @param listener {@link ButtonGroupListener} to add
+     */
+    public void addButtonGroupListener ( @NotNull final ButtonGroupListener listener )
     {
-        return CollectionUtils.copy ( buttons );
+        listeners.add ( ButtonGroupListener.class, listener );
     }
 
-    public void addButtonGroupListener ( final ButtonGroupListener listener )
+    /**
+     * Removes {@link ButtonGroupListener}.
+     *
+     * @param listener {@link ButtonGroupListener} to remove
+     */
+    public void removeButtonGroupListener ( @NotNull final ButtonGroupListener listener )
     {
-        listeners.add ( listener );
+        listeners.remove ( ButtonGroupListener.class, listener );
     }
 
-    public void removeButtonGroupListener ( final ButtonGroupListener listener )
-    {
-        listeners.remove ( listener );
-    }
-
+    /**
+     * Informs all {@link ButtonGroupListener}s about group selection change.
+     */
     public void fireSelectionChanged ()
     {
-        for ( final ButtonGroupListener listener : CollectionUtils.copy ( listeners ) )
+        for ( final ButtonGroupListener listener : listeners.getListeners ( ButtonGroupListener.class ) )
         {
             listener.selectionChanged ();
         }
     }
 
-    public void add ( final AbstractButton... b )
-    {
-        for ( final AbstractButton button : b )
-        {
-            add ( button );
-        }
-    }
-
-    public void add ( final List<AbstractButton> b )
-    {
-        for ( final AbstractButton button : b )
-        {
-            add ( button );
-        }
-    }
-
-    public static UnselectableButtonGroup group ( final AbstractButton... buttons )
+    /**
+     * Returns {@link UnselectableButtonGroup} used to group specified {@link AbstractButton}s.
+     * Convenience method in case you don't want to go with {@link #UnselectableButtonGroup(AbstractButton...)} constructor.
+     *
+     * @param buttons {@link AbstractButton}s to group
+     * @return {@link UnselectableButtonGroup} used to group specified {@link AbstractButton}s
+     */
+    @NotNull
+    public static UnselectableButtonGroup group ( @NotNull final AbstractButton... buttons )
     {
         return new UnselectableButtonGroup ( buttons );
     }
 
-    public static UnselectableButtonGroup group ( final List<AbstractButton> buttons )
+    /**
+     * Returns {@link UnselectableButtonGroup} used to group specified {@link AbstractButton}s.
+     * Convenience method in case you don't want to go with {@link #UnselectableButtonGroup(List)} constructor.
+     *
+     * @param buttons {@link List} of {@link AbstractButton}s to group
+     * @return {@link UnselectableButtonGroup} used to group specified {@link AbstractButton}s
+     */
+    @NotNull
+    public static UnselectableButtonGroup group ( @NotNull final List<AbstractButton> buttons )
     {
         return new UnselectableButtonGroup ( buttons );
+    }
+
+    /**
+     * Returns {@link UnselectableButtonGroup} used to group {@link AbstractButton}s from the specified {@link Container}.
+     * Convenience method in case you don't want to go with {@link #UnselectableButtonGroup(Container)} constructor.
+     *
+     * @param container {@link Container} to find {@link AbstractButton}s to group in
+     * @return {@link UnselectableButtonGroup} used to group {@link AbstractButton}s from the specified {@link Container}
+     */
+    @NotNull
+    public static UnselectableButtonGroup group ( @NotNull final Container container )
+    {
+        return new UnselectableButtonGroup ( container );
     }
 }

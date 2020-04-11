@@ -17,83 +17,96 @@
 
 package com.alee.extended.checkbox;
 
-import com.alee.laf.checkbox.CheckIcon;
-import com.alee.laf.checkbox.WebCheckBoxUI;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.laf.radiobutton.IAbstractStateButtonPainter;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.Painter;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
+import java.awt.*;
 
 /**
- * Custom UI for WebTristateCheckBox component.
+ * Custom UI for {@link WebTristateCheckBox} component.
  *
+ * @param <C> component type
  * @author Mikle Garin
+ * @author Alexandr Zernov
  */
-
-public class WebTristateCheckBoxUI extends WebCheckBoxUI
+public class WebTristateCheckBoxUI<C extends WebTristateCheckBox> extends WTristateCheckBoxUI<C>
 {
     /**
-     * Returns an instance of the WebTristateCheckBoxUI for the specified component.
-     * This tricky method is used by UIManager to create component UIs when needed.
+     * Returns an instance of the {@link WebTristateCheckBoxUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
      *
      * @param c component that will use UI instance
-     * @return instance of the WebTristateCheckBoxUI
+     * @return instance of the {@link WebTristateCheckBoxUI}
      */
-    @SuppressWarnings ( "UnusedParameters" )
-    public static ComponentUI createUI ( final JComponent c )
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebTristateCheckBoxUI ();
     }
 
-    /**
-     * Installs UI in the specified component.
-     *
-     * @param c component for this UI
-     */
     @Override
-    public void installUI ( final JComponent c )
+    public void installUI ( @NotNull final JComponent c )
     {
+        // Installing UI
         super.installUI ( c );
 
-        // Initial check state
-        checkIcon.setState ( getTristateCheckbox ().getState () );
+        // Applying skin
+        StyleManager.installSkin ( button );
     }
 
-    /**
-     * Returns tristate checkbox which uses this UI.
-     *
-     * @return tristate checkbox which uses this UI
-     */
-    protected WebTristateCheckBox getTristateCheckbox ()
-    {
-        return ( WebTristateCheckBox ) checkBox;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    protected CheckIcon createCheckStateIcon ()
+    public void uninstallUI ( @NotNull final JComponent c )
     {
-        return new TristateCheckIcon ( getTristateCheckbox () );
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( button );
+
+        // Uninstalling UI
+        super.uninstallUI ( c );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    protected void performStateChanged ()
+    public Rectangle getIconBounds ()
     {
-        final WebTristateCheckBox tcb = getTristateCheckbox ();
-        if ( isAnimationAllowed () && isAnimated () && tcb.isEnabled () )
-        {
-            checkIcon.setNextState ( tcb.getState () );
-            checkTimer.start ();
-        }
-        else
-        {
-            checkTimer.stop ();
-            checkIcon.setState ( tcb.getState () );
-            tcb.repaint ();
-        }
+        final Painter painter = PainterSupport.getPainter ( button );
+        return painter instanceof IAbstractStateButtonPainter ? ( ( IAbstractStateButtonPainter ) painter ).getIconBounds () : null;
+    }
+
+    @Override
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
+    {
+        return PainterSupport.contains ( c, this, x, y );
+    }
+
+    @Override
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
+
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
+
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getPreferredSize ( c );
     }
 }

@@ -17,6 +17,10 @@
 
 package com.alee.utils.ninepatch;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.merge.Overwriting;
+import com.alee.api.resource.Resource;
 import com.alee.utils.ImageUtils;
 import com.alee.utils.NinePatchUtils;
 import com.thoughtworks.xstream.annotations.XStreamConverter;
@@ -24,209 +28,177 @@ import com.thoughtworks.xstream.annotations.XStreamConverter;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.net.URL;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class allows you to create and use nine-patch icons within Swing applications.
- * <p/>
- * Basically it parses nine-patch image data (patches at the side of .9.png image) into understandable values and uses them to stretch the
- * image properly when it is painted anywhere.
+ * Android 9-patch images {@link Icon} implementation for Swing components.
+ * It parses 9-patch image data and uses it to properly stretch upon painting on specific {@link JComponent}.
  *
  * @author Mikle Garin
- * @see com.alee.extended.painter.NinePatchIconPainter
- * @see com.alee.extended.painter.NinePatchStatePainter
  */
-@XStreamConverter (NinePatchIconConverter.class)
-public class NinePatchIcon implements Icon
+@XStreamConverter ( NinePatchIconConverter.class )
+public class NinePatchIcon implements Icon, Overwriting
 {
-    /**
-     * Component onto which this nine-patch icon will be stretched.
-     */
-    protected Component component;
-
     /**
      * Raw image without patches.
      */
+    @NotNull
     protected BufferedImage rawImage;
 
     /**
      * Horizontal stretch intervals taken from image patches (top image patches).
-     * Note that pixel parts are also included here but marked with "pixel=true" boolean value.
+     * Note that non-stretched parts are also included here and are marked as {@link NinePatchInterval#isPixel()}.
      */
+    @NotNull
     protected List<NinePatchInterval> horizontalStretch;
 
     /**
      * Vertical stretch intervals taken from image patches (left image patches).
-     * Note that pixel parts are also included here but marked with "pixel=true" boolean value.
+     * Note that non-stretched parts are also included here and are marked as {@link NinePatchInterval#isPixel()}.
      */
+    @NotNull
     protected List<NinePatchInterval> verticalStretch;
 
     /**
      * Content margin taken from image patches (right and bottom patches).
      * This margin is generally valuable for components which uses this icon as a background to set their style margins properly.
      */
+    @NotNull
     protected Insets margin;
 
     /**
      * Cached fixed areas width of the nine-patch image with additional 1px for each stretchable area.
      */
+    @Nullable
     protected Integer cachedWidth0;
 
     /**
      * Cached fixed areas width of the nine-patch image.
      */
+    @Nullable
     protected Integer cachedWidth1;
 
     /**
      * Cached fixed areas height of the nine-patch image with additional 1px for each stretchable area.
      */
+    @Nullable
     protected Integer cachedHeight0;
 
     /**
      * Cached fixed areas height of the nine-patch image.
      */
+    @Nullable
     protected Integer cachedHeight1;
 
     /**
-     * Constructs new NinePatchIcon using the nine-patch image from the specified URL.
-     *
-     * @param url nine-patch image URL
+     * {@link JComponent} on which this {@link NinePatchIcon} is painted.
      */
-    public NinePatchIcon ( final URL url )
-    {
-        this ( url, null );
-    }
+    @Nullable
+    protected transient WeakReference<JComponent> component;
 
     /**
-     * Constructs new NinePatchIcon using the nine-patch image from the specified URL.
+     * Constructs new NinePatchIcon using the nine-patch image from the specified path.
      *
-     * @param url       nine-patch image URL
-     * @param component component atop of which icon will be stretched
+     * @param resource {@link Resource} of image with patch information on it
      */
-    public NinePatchIcon ( final URL url, final Component component )
+    public NinePatchIcon ( @NotNull final Resource resource )
     {
-        this ( ImageUtils.getBufferedImage ( url ), component );
+        this ( resource, true );
     }
 
     /**
      * Constructs new NinePatchIcon using the nine-patch image from the specified path.
      *
-     * @param iconSrc nine-patch image path
+     * @param resource     {@link Resource} of image
+     * @param parsePatches whether or not information about patches should be parsed from the image
      */
-    public NinePatchIcon ( final String iconSrc )
+    public NinePatchIcon ( @NotNull final Resource resource, final boolean parsePatches )
     {
-        this ( iconSrc, null );
-    }
-
-    /**
-     * Constructs new NinePatchIcon using the nine-patch image from the specified path.
-     *
-     * @param iconSrc   nine-patch image path
-     * @param component component atop of which icon will be stretched
-     */
-    public NinePatchIcon ( final String iconSrc, final Component component )
-    {
-        this ( ImageUtils.getBufferedImage ( iconSrc ), component );
+        this ( ImageUtils.loadBufferedImage ( resource ), parsePatches );
     }
 
     /**
      * Constructs new NinePatchIcon using the specified nine-patch image.
      *
-     * @param imageIcon nine-patch image
+     * @param icon {@link Icon} with patch information on it
      */
-    public NinePatchIcon ( final ImageIcon imageIcon )
+    public NinePatchIcon ( @NotNull final Icon icon )
     {
-        this ( imageIcon, null );
+        this ( icon, true );
     }
 
     /**
      * Constructs new NinePatchIcon using the specified nine-patch image.
      *
-     * @param imageIcon nine-patch image
-     * @param component component atop of which icon will be stretched
+     * @param icon         {@link Icon}
+     * @param parsePatches whether or not information about patches should be parsed from the image
      */
-    public NinePatchIcon ( final ImageIcon imageIcon, final Component component )
+    public NinePatchIcon ( @NotNull final Icon icon, final boolean parsePatches )
     {
-        this ( ImageUtils.getBufferedImage ( imageIcon ), component );
+        this ( ImageUtils.toNonNullBufferedImage ( icon ), parsePatches );
     }
 
     /**
      * Constructs new NinePatchIcon using the specified nine-patch image.
      *
-     * @param image nine-patch image
+     * @param image {@link Image} with patch information on it
      */
-    public NinePatchIcon ( final Image image )
+    public NinePatchIcon ( @NotNull final Image image )
     {
-        this ( image, null );
+        this ( image, true );
     }
 
     /**
      * Constructs new NinePatchIcon using the specified nine-patch image.
      *
-     * @param image     nine-patch image
-     * @param component component atop of which icon will be stretched
+     * @param image        {@link Image}
+     * @param parsePatches whether or not information about patches should be parsed from the image
      */
-    public NinePatchIcon ( final Image image, final Component component )
+    public NinePatchIcon ( @NotNull final Image image, final boolean parsePatches )
     {
-        this ( ImageUtils.getBufferedImage ( image ), component );
+        this ( ImageUtils.toNonNullBufferedImage ( image ), parsePatches );
     }
 
     /**
      * Constructs new NinePatchIcon using the specified nine-patch image.
      *
-     * @param bufferedImage nine-patch image
+     * @param image {@link BufferedImage} with patch information on it
      */
-    public NinePatchIcon ( final BufferedImage bufferedImage )
+    public NinePatchIcon ( @NotNull final BufferedImage image )
     {
-        this ( bufferedImage, null );
+        this ( image, true );
     }
 
     /**
      * Constructs new NinePatchIcon using the specified nine-patch image.
      *
-     * @param bufferedImage nine-patch image
-     * @param component     component atop of which icon will be stretched
+     * @param image        {@link BufferedImage}
+     * @param parsePatches whether or not information about patches should be parsed from the image
      */
-    public NinePatchIcon ( final BufferedImage bufferedImage, final Component component )
+    public NinePatchIcon ( @NotNull final BufferedImage image, final boolean parsePatches )
     {
-        this ( bufferedImage, component, true );
-    }
-
-    /**
-     * Constructs new NinePatchIcon using the specified nine-patch image.
-     *
-     * @param bufferedImage nine-patch image
-     * @param component     component atop of which icon will be stretched
-     * @param parsePatches  whether should parse image patches or not
-     */
-    protected NinePatchIcon ( final BufferedImage bufferedImage, final Component component, final boolean parsePatches )
-    {
-        super ();
-
+        // Parsing patches or creating new 9-patch icon
         if ( parsePatches )
         {
             // Incorrect image
-            if ( bufferedImage.getWidth () < 3 || bufferedImage.getHeight () < 3 )
+            if ( image.getWidth () < 3 || image.getHeight () < 3 )
             {
                 throw new IllegalArgumentException ( "Buffered image must be atleast 3x3 pixels size" );
             }
 
-            // Componet for which this icon will be streched
-            this.component = component;
-
             // Creating actual image in a compatible format
-            final int w = bufferedImage.getWidth () - 2;
-            final int h = bufferedImage.getHeight () - 2;
-            rawImage = ImageUtils.createCompatibleImage ( bufferedImage, w, h );
+            final int w = image.getWidth () - 2;
+            final int h = image.getHeight () - 2;
+            rawImage = ImageUtils.createCompatibleImage ( w, h, image.getTransparency () );
             final Graphics2D g2d = rawImage.createGraphics ();
-            g2d.drawImage ( bufferedImage, 0, 0, w, h, 1, 1, bufferedImage.getWidth () - 1, bufferedImage.getHeight () - 1, null );
+            g2d.drawImage ( image, 0, 0, w, h, 1, 1, image.getWidth () - 1, image.getHeight () - 1, null );
             g2d.dispose ();
 
             // Parsing stretch variables
-            horizontalStretch = NinePatchUtils.parseIntervals ( bufferedImage, NinePatchIntervalType.horizontalStretch );
-            verticalStretch = NinePatchUtils.parseIntervals ( bufferedImage, NinePatchIntervalType.verticalStretch );
+            horizontalStretch = NinePatchUtils.parseIntervals ( image, NinePatchIntervalType.horizontalStretch );
+            verticalStretch = NinePatchUtils.parseIntervals ( image, NinePatchIntervalType.verticalStretch );
 
             // Incorrect image
             if ( !( ( horizontalStretch.size () > 1 || horizontalStretch.size () == 1 && !horizontalStretch.get ( 0 ).isPixel () ) &&
@@ -236,8 +208,8 @@ public class NinePatchIcon implements Icon
             }
 
             // Parsing content margins
-            final List<NinePatchInterval> vc = NinePatchUtils.parseIntervals ( bufferedImage, NinePatchIntervalType.verticalContent );
-            final List<NinePatchInterval> hc = NinePatchUtils.parseIntervals ( bufferedImage, NinePatchIntervalType.horizontalContent );
+            final List<NinePatchInterval> vc = NinePatchUtils.parseIntervals ( image, NinePatchIntervalType.verticalContent );
+            final List<NinePatchInterval> hc = NinePatchUtils.parseIntervals ( image, NinePatchIntervalType.horizontalContent );
             final int top = vc.size () == 0 ? 0 : vc.get ( 0 ).getStart ();
             final int bottom = vc.size () == 0 ? 0 : rawImage.getHeight () - vc.get ( 0 ).getEnd () - 1;
             final int left = hc.size () == 0 ? 0 : hc.get ( 0 ).getStart ();
@@ -252,27 +224,27 @@ public class NinePatchIcon implements Icon
         }
         else
         {
-            // Componet for which this icon will be streched
-            this.component = component;
-
             // Actual image
-            this.rawImage = bufferedImage;
+            this.rawImage = image;
 
             // Stretch variables
             horizontalStretch = new ArrayList<NinePatchInterval> ();
             verticalStretch = new ArrayList<NinePatchInterval> ();
+
+            // Empty margin
+            margin = new Insets ( 0, 0, 0, 0 );
         }
     }
 
     /**
-     * Returns newly created NinePatchIcon with empty patches.
+     * Always returns {@code true} to avoid any merge operations between {@link NinePatchIcon} instances.
      *
-     * @param rawImage raw image without patches
-     * @return newly created NinePatchIcon with empty patches
+     * @return always {@code true} to avoid any merge operations between {@link NinePatchIcon} instances
      */
-    public static NinePatchIcon create ( final BufferedImage rawImage )
+    @Override
+    public boolean isOverwrite ()
     {
-        return new NinePatchIcon ( rawImage, null, false );
+        return true;
     }
 
     /**
@@ -280,40 +252,39 @@ public class NinePatchIcon implements Icon
      *
      * @return raw image without patches
      */
+    @NotNull
     public BufferedImage getRawImage ()
     {
         return rawImage;
     }
 
     /**
-     * Returns component atop of which icon will be stretched.
+     * Returns {@link JComponent} on which this {@link NinePatchIcon} is painted.
      *
-     * @return component atop of which icon will be stretched
+     * @return {@link JComponent} on which this {@link NinePatchIcon} is painted
      */
-    public Component getComponent ()
+    @Nullable
+    public JComponent getComponent ()
     {
-        return component;
+        return component != null ? component.get () : null;
     }
 
     /**
-     * Sets component atop of which icon will be stretched.
+     * Sets {@link JComponent} on which this {@link NinePatchIcon} is painted.
      *
-     * @param component component atop of which icon will be stretched
+     * @param component {@link JComponent} on which this {@link NinePatchIcon} is painted
      */
-    public void setComponent ( final Component component )
+    public void setComponent ( @Nullable final JComponent component )
     {
-        this.component = component;
+        this.component = component != null ? new WeakReference<JComponent> ( component ) : null;
     }
-
-    /**
-     * Horizontal image patches data
-     */
 
     /**
      * Returns list of horizontal stretch intervals taken from image patches.
      *
      * @return list of horizontal stretch intervals taken from image patches
      */
+    @NotNull
     public List<NinePatchInterval> getHorizontalStretch ()
     {
         return horizontalStretch;
@@ -324,7 +295,7 @@ public class NinePatchIcon implements Icon
      *
      * @param horizontalStretch list of horizontal stretch intervals
      */
-    public void setHorizontalStretch ( final List<NinePatchInterval> horizontalStretch )
+    public void setHorizontalStretch ( @NotNull final List<NinePatchInterval> horizontalStretch )
     {
         this.horizontalStretch = horizontalStretch;
         updateCachedWidthData ();
@@ -335,7 +306,7 @@ public class NinePatchIcon implements Icon
      *
      * @param interval horizontal stretch interval to add
      */
-    public void addHorizontalStretch ( final NinePatchInterval interval )
+    public void addHorizontalStretch ( @NotNull final NinePatchInterval interval )
     {
         this.horizontalStretch.add ( interval );
         updateCachedWidthData ();
@@ -358,6 +329,7 @@ public class NinePatchIcon implements Icon
      *
      * @return list of vertical stretch intervals taken from image patches
      */
+    @NotNull
     public List<NinePatchInterval> getVerticalStretch ()
     {
         return verticalStretch;
@@ -368,7 +340,7 @@ public class NinePatchIcon implements Icon
      *
      * @param verticalStretch list of vertical stretch intervals
      */
-    public void setVerticalStretch ( final List<NinePatchInterval> verticalStretch )
+    public void setVerticalStretch ( @NotNull final List<NinePatchInterval> verticalStretch )
     {
         this.verticalStretch = verticalStretch;
         updateCachedHeightData ();
@@ -379,7 +351,7 @@ public class NinePatchIcon implements Icon
      *
      * @param interval vertical stretch interval to add
      */
-    public void addVerticalStretch ( final NinePatchInterval interval )
+    public void addVerticalStretch ( @NotNull final NinePatchInterval interval )
     {
         this.verticalStretch.add ( interval );
         updateCachedHeightData ();
@@ -402,6 +374,7 @@ public class NinePatchIcon implements Icon
      *
      * @return margin taken from image content patches
      */
+    @NotNull
     public Insets getMargin ()
     {
         return ( Insets ) margin.clone ();
@@ -412,6 +385,7 @@ public class NinePatchIcon implements Icon
      *
      * @return margin taken from image stretch patches
      */
+    @NotNull
     public Insets getStretchMargin ()
     {
         final NinePatchInterval top = verticalStretch.get ( 0 );
@@ -426,7 +400,7 @@ public class NinePatchIcon implements Icon
      *
      * @param margin content margin
      */
-    public void setMargin ( final Insets margin )
+    public void setMargin ( @NotNull final Insets margin )
     {
         this.margin = margin;
     }
@@ -460,9 +434,9 @@ public class NinePatchIcon implements Icon
      * @param c component to process
      * @param g graphics context
      */
-    public void paintIcon ( final Component c, final Graphics g )
+    public void paintIcon ( @NotNull final JComponent c, @NotNull final Graphics g )
     {
-        paintIcon ( ( Graphics2D ) g, 0, 0, c.getWidth (), c.getHeight () );
+        paintIcon ( ( Graphics2D ) g, 0, 0, getIconWidth ( c ), getIconHeight ( c ) );
     }
 
     /**
@@ -474,10 +448,9 @@ public class NinePatchIcon implements Icon
      * @param y location Y coordinate
      */
     @Override
-    public void paintIcon ( final Component c, final Graphics g, final int x, final int y )
+    public void paintIcon ( @NotNull final Component c, @NotNull final Graphics g, final int x, final int y )
     {
-        // todo Modify this behavior so that icon is properly painted in Swing components
-        paintIcon ( ( Graphics2D ) g, 0, 0, c.getWidth (), c.getHeight () );
+        paintIcon ( ( Graphics2D ) g, x, y, getFixedPixelsWidth ( true ), getFixedPixelsHeight ( true ) );
     }
 
     /**
@@ -486,7 +459,7 @@ public class NinePatchIcon implements Icon
      * @param g2d    graphics context
      * @param bounds icon bounds
      */
-    public void paintIcon ( final Graphics2D g2d, final Rectangle bounds )
+    public void paintIcon ( @NotNull final Graphics2D g2d, @NotNull final Rectangle bounds )
     {
         paintIcon ( g2d, bounds.x, bounds.y, bounds.width, bounds.height );
     }
@@ -500,7 +473,7 @@ public class NinePatchIcon implements Icon
      * @param width  icon width
      * @param height icon height
      */
-    public void paintIcon ( final Graphics2D g2d, final int x, final int y, final int width, final int height )
+    public void paintIcon ( @NotNull final Graphics2D g2d, final int x, final int y, final int width, final int height )
     {
         final int availableWidth = Math.max ( width, getFixedPixelsWidth ( true ) );
         final int availableHeight = Math.max ( height, getFixedPixelsHeight ( true ) );
@@ -562,22 +535,24 @@ public class NinePatchIcon implements Icon
      */
     public int getFixedPixelsWidth ( final boolean addUnfixedSpaces )
     {
+        final int width;
         if ( addUnfixedSpaces )
         {
             if ( cachedWidth0 == null )
             {
-                cachedWidth0 = calculateFixedPixelsWidth ( addUnfixedSpaces );
+                cachedWidth0 = calculateFixedPixelsWidth ( true );
             }
-            return cachedWidth0;
+            width = cachedWidth0;
         }
         else
         {
             if ( cachedWidth1 == null )
             {
-                cachedWidth1 = calculateFixedPixelsWidth ( addUnfixedSpaces );
+                cachedWidth1 = calculateFixedPixelsWidth ( false );
             }
-            return cachedWidth1;
+            width = cachedWidth1;
         }
+        return width;
     }
 
     /**
@@ -622,22 +597,24 @@ public class NinePatchIcon implements Icon
      */
     public int getFixedPixelsHeight ( final boolean addUnfixedSpaces )
     {
+        final int height;
         if ( addUnfixedSpaces )
         {
             if ( cachedHeight0 == null )
             {
-                cachedHeight0 = calculateFixedPixelsHeight ( addUnfixedSpaces );
+                cachedHeight0 = calculateFixedPixelsHeight ( true );
             }
-            return cachedHeight0;
+            height = cachedHeight0;
         }
         else
         {
             if ( cachedHeight1 == null )
             {
-                cachedHeight1 = calculateFixedPixelsHeight ( addUnfixedSpaces );
+                cachedHeight1 = calculateFixedPixelsHeight ( false );
             }
-            return cachedHeight1;
+            height = cachedHeight1;
         }
+        return height;
     }
 
     /**
@@ -674,20 +651,36 @@ public class NinePatchIcon implements Icon
         getFixedPixelsHeight ( false );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getIconWidth ()
+    {
+        return getIconWidth ( getComponent () );
+    }
+
+    /**
+     * Returns icon width for the specified component.
+     *
+     * @param component component atop of which icon will be stretched
+     * @return icon width for the specified component
+     */
+    public int getIconWidth ( @Nullable final JComponent component )
     {
         return Math.max ( component != null ? component.getWidth () : 0, getFixedPixelsWidth ( true ) );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getIconHeight ()
+    {
+        return getIconHeight ( getComponent () );
+    }
+
+    /**
+     * Returns icon height for the specified component.
+     *
+     * @param component component atop of which icon will be stretched
+     * @return icon height for the specified component
+     */
+    public int getIconHeight ( @Nullable final JComponent component )
     {
         return Math.max ( component != null ? component.getHeight () : 0, getFixedPixelsHeight ( true ) );
     }
@@ -697,6 +690,7 @@ public class NinePatchIcon implements Icon
      *
      * @return preferred icon size
      */
+    @NotNull
     public Dimension getPreferredSize ()
     {
         return new Dimension ( getFixedPixelsWidth ( true ), getFixedPixelsHeight ( true ) );
@@ -707,6 +701,7 @@ public class NinePatchIcon implements Icon
      *
      * @return raw image size
      */
+    @NotNull
     public Dimension getRealImageSize ()
     {
         return new Dimension ( getRawImage ().getWidth (), getRawImage ().getHeight () );

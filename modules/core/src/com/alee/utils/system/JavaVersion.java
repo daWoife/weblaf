@@ -17,210 +17,343 @@
 
 package com.alee.utils.system;
 
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.api.jdk.Objects;
+import com.alee.utils.ReflectUtils;
+import com.alee.utils.SystemUtils;
+import org.slf4j.LoggerFactory;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Java version information class.
+ * Java version information.
  *
  * @author Mikle Garin
  */
-
-public class JavaVersion
+public final class JavaVersion
 {
     /**
-     * Java version string pattern.
+     * Version string pattern.
      */
-    private static Pattern versionPattern = Pattern.compile ( "(\\d+\\.\\d+)(\\.(\\d+))?(_([^-]+))?(.*)" );
+    private static final Pattern versionPattern = Pattern.compile ( "(\\d+\\.\\d+)(\\.(\\d+))?(_([^-]+))?(.*)" );
 
     /**
-     * Simple java version string pattern.
+     * Simple version string pattern.
      */
-    private static Pattern simpleVersionPattern = Pattern.compile ( "(\\d+\\.\\d+)(\\.(\\d+))?(.*)" );
+    private static final Pattern simpleVersionPattern = Pattern.compile ( "(\\d+\\.\\d+)(\\.(\\d+))?(.*)" );
 
     /**
-     * Major java version.
+     * Major version.
      */
-    private double majorVersion;
+    private final double major;
 
     /**
-     * Minor java version.
+     * Minor version.
      */
-    private int minorVersion;
+    private final int minor;
 
     /**
      * Java update number.
      */
-    private int updateNumber;
+    private final int update;
 
     /**
      * Java patch.
      */
-    private String patch;
+    @Nullable
+    private final String patch;
 
     /**
-     * Constructs JavaVersion with specified major version and update number.
+     * Constructs new {@link JavaVersion} for the specified major version and update number.
      *
-     * @param major  major java version
-     * @param update java update number
+     * @param major  major version
+     * @param update update number
      */
-    public JavaVersion ( double major, int update )
+    public JavaVersion ( final double major, final int update )
     {
-        super ();
-        majorVersion = major;
-        minorVersion = 0;
-        updateNumber = update;
+        this ( major, 0, update );
     }
 
     /**
-     * Constructs JavaVersion with specified major version, minor version and update number.
+     * Constructs new {@link JavaVersion} for the specified major version, minor version and update number.
      *
-     * @param major  major java version
-     * @param minor  minor java version
-     * @param update java update number
+     * @param major  major version
+     * @param minor  minor version
+     * @param update update number
      */
-    public JavaVersion ( double major, int minor, int update )
+    public JavaVersion ( final double major, final int minor, final int update )
     {
-        super ();
-        majorVersion = major;
-        minorVersion = minor;
-        updateNumber = update;
+        this ( major, minor, update, null );
     }
 
     /**
-     * Constructs JavaVersion using the specified java version.
+     * Constructs new {@link JavaVersion} for the specified major version, minor version and update number.
      *
-     * @param version java version string
+     * @param major  major version
+     * @param minor  minor version
+     * @param update update number
+     * @param patch  patch
      */
-    public JavaVersion ( String version )
+    public JavaVersion ( final double major, final int minor, final int update, @Nullable final String patch )
     {
-        super ();
-        applyJavaVersion ( version );
+        this.major = major;
+        this.minor = minor;
+        this.update = update;
+        this.patch = patch;
     }
 
     /**
-     * Applies specified java version.
-     *
-     * @param version java version
+     * Constructs current runtime {@link JavaVersion}.
      */
-    public void applyJavaVersion ( String version )
+    public JavaVersion ()
     {
+        double major = 0.0;
+        int minor = 0;
+        int update = 0;
+        String patch = null;
+        boolean read = false;
+
+        /**
+         * Using {@link Runtime} public API introduced in JDK 9.
+         */
         try
         {
-            Matcher matcher = versionPattern.matcher ( version );
-            if ( matcher.matches () )
-            {
-                int groups = matcher.groupCount ();
-                majorVersion = Double.parseDouble ( matcher.group ( 1 ) );
-                if ( groups >= 3 && matcher.group ( 3 ) != null )
-                {
-                    minorVersion = Integer.parseInt ( matcher.group ( 3 ) );
-                }
-                if ( groups >= 5 && matcher.group ( 5 ) != null )
-                {
-                    try
-                    {
-                        updateNumber = Integer.parseInt ( matcher.group ( 5 ) );
-                    }
-                    catch ( NumberFormatException e )
-                    {
-                        patch = matcher.group ( 5 );
-                    }
-                }
-                if ( groups >= 6 && matcher.group ( 6 ) != null )
-                {
-                    String s = matcher.group ( 6 );
-                    if ( s != null && s.trim ().length () > 0 )
-                    {
-                        patch = s;
-                    }
-                }
-            }
-        }
-        catch ( NumberFormatException e )
-        {
+            final Object version = ReflectUtils.callStaticMethod ( Runtime.class, "version" );
             try
             {
-                Matcher matcher = simpleVersionPattern.matcher ( version );
+                final Object majorNumber = ReflectUtils.callMethod ( version, "major" );
+                major = majorNumber instanceof Integer ? ( Integer ) majorNumber : 0.0;
+                final Object minorNumber = ReflectUtils.callMethod ( version, "minor" );
+                minor = minorNumber instanceof Integer ? ( Integer ) minorNumber : 0;
+                final Object updateNumber = ReflectUtils.callMethod ( version, "security" );
+                update = updateNumber instanceof Integer ? ( Integer ) updateNumber : 0;
+                final Object optional = ReflectUtils.callMethod ( version, "optional" );
+                patch = optional != null ? ( String ) ReflectUtils.callMethod ( optional, "orElse", ( Object ) null ) : null;
+                read = true;
+            }
+            catch ( final Exception e )
+            {
+                LoggerFactory.getLogger ( JavaVersion.class ).error ( "Unable to read Runtime version", e );
+            }
+        }
+        catch ( final Exception ignored )
+        {
+            /**
+             * Ignoring any exceptions here.
+             */
+        }
+
+        /**
+         * Manually parsing {@code "java.version"} system property string.
+         */
+        if ( !read )
+        {
+            final String versionString = SystemUtils.getJavaVersionString ();
+            try
+            {
+                final Matcher matcher = versionPattern.matcher ( versionString );
                 if ( matcher.matches () )
                 {
-                    int groups = matcher.groupCount ();
-                    majorVersion = Double.parseDouble ( matcher.group ( 1 ) );
+                    final int groups = matcher.groupCount ();
+                    major = Double.parseDouble ( matcher.group ( 1 ) );
                     if ( groups >= 3 && matcher.group ( 3 ) != null )
                     {
-                        minorVersion = Integer.parseInt ( matcher.group ( 3 ) );
+                        minor = Integer.parseInt ( matcher.group ( 3 ) );
                     }
+                    if ( groups >= 5 && matcher.group ( 5 ) != null )
+                    {
+                        try
+                        {
+                            update = Integer.parseInt ( matcher.group ( 5 ) );
+                        }
+                        catch ( final NumberFormatException e )
+                        {
+                            patch = matcher.group ( 5 );
+                        }
+                    }
+                    if ( groups >= 6 && matcher.group ( 6 ) != null )
+                    {
+                        final String s = matcher.group ( 6 );
+                        if ( s != null && s.trim ().length () > 0 )
+                        {
+                            patch = s;
+                        }
+                    }
+                    read = true;
                 }
             }
-            catch ( NumberFormatException e1 )
+            catch ( final NumberFormatException e )
             {
-                majorVersion = 1.4;
-                minorVersion = 0;
-                updateNumber = 0;
+                try
+                {
+                    final Matcher matcher = simpleVersionPattern.matcher ( versionString );
+                    if ( matcher.matches () )
+                    {
+                        final int groups = matcher.groupCount ();
+                        major = Double.parseDouble ( matcher.group ( 1 ) );
+                        if ( groups >= 3 && matcher.group ( 3 ) != null )
+                        {
+                            minor = Integer.parseInt ( matcher.group ( 3 ) );
+                        }
+                    }
+                    read = true;
+                }
+                catch ( final NumberFormatException e1 )
+                {
+                    major = 1.4;
+                    minor = 0;
+                    update = 0;
+                    read = true;
+                }
             }
         }
-    }
 
-    /**
-     * Returns a negative integer, zero, or a positive integer if this java version is less than, equal to, or greater than the other one.
-     *
-     * @param major  major java version
-     * @param minor  minor java version
-     * @param update java update number
-     * @return a negative integer, zero, or a positive integer if this java version is less than, equal to, or greater than the other one
-     */
-    public int compareVersion ( double major, int minor, int update )
-    {
-        double majorResult = majorVersion - major;
-        if ( majorResult != 0 )
+        /**
+         * Updating resulting values.
+         */
+        if ( read )
         {
-            return majorResult < 0 ? -1 : 1;
+            this.major = major;
+            this.minor = minor;
+            this.update = update;
+            this.patch = patch;
         }
-        int result = minorVersion - minor;
-        if ( result != 0 )
+        else
         {
-            return result;
+            throw new RuntimeException ( "Unable to determine Java runtime version" );
         }
-        return updateNumber - update;
     }
 
     /**
-     * Returns major java version.
+     * Returns major version.
      *
-     * @return major java version
+     * @return major version
      */
-    public double getMajorVersion ()
+    public double major ()
     {
-        return majorVersion;
+        return major;
     }
 
     /**
-     * Returns minor java version.
+     * Returns minor version.
      *
-     * @return minor java version
+     * @return minor version
      */
-    public int getMinorVersion ()
+    public int minor ()
     {
-        return minorVersion;
+        return minor;
     }
 
     /**
-     * Returns java update number.
+     * Returns update number.
      *
-     * @return java update number
+     * @return update number
      */
-    public int getUpdateNumber ()
+    public int update ()
     {
-        return updateNumber;
+        return update;
     }
 
     /**
-     * Returns java patch.
+     * Returns patch.
      *
-     * @return java patch
+     * @return patch
      */
-    public String getPatch ()
+    @Nullable
+    public String patch ()
     {
         return patch;
+    }
+
+    /**
+     * Returns a negative integer, zero, or a positive integer if this version is less than, equal to, or greater than the other one.
+     *
+     * @param version {@link JavaVersion}
+     * @return a negative integer, zero, or a positive integer if this version is less than, equal to, or greater than the other one
+     */
+    public int compareTo ( final JavaVersion version )
+    {
+        return compareTo ( version.major (), version.minor (), version.update () );
+    }
+
+    /**
+     * Returns a negative integer, zero, or a positive integer if this version is less than, equal to, or greater than the other one.
+     *
+     * @param major  major version
+     * @param minor  minor version
+     * @param update update number
+     * @return a negative integer, zero, or a positive integer if this version is less than, equal to, or greater than the other one
+     */
+    public int compareTo ( final double major, final int minor, final int update )
+    {
+        final int result;
+        final double majorResult = this.major - major;
+        if ( majorResult != 0 )
+        {
+            result = majorResult < 0 ? -1 : 1;
+        }
+        else
+        {
+            final int minorResult = this.minor - minor;
+            if ( minorResult != 0 )
+            {
+                result = minorResult;
+            }
+            else
+            {
+                result = this.update - update;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns version {@link String} only.
+     *
+     * @return version {@link String} only
+     */
+    @NotNull
+    public String versionString ()
+    {
+        final StringBuilder version = new StringBuilder ();
+        if ( major () < 9.0 )
+        {
+            version.append ( major () );
+            version.append ( "." );
+            version.append ( minor () );
+            version.append ( " u" ).append ( update () );
+        }
+        else
+        {
+            version.append ( Math.round ( major () ) );
+            version.append ( "." );
+            version.append ( minor () );
+            version.append ( "." );
+            version.append ( update () );
+        }
+        return version.toString ();
+    }
+
+    @Override
+    public int hashCode ()
+    {
+        return Objects.hash ( major (), minor (), update (), patch () );
+    }
+
+    @NotNull
+    @Override
+    public String toString ()
+    {
+        final StringBuilder version = new StringBuilder ( "Java " );
+        version.append ( versionString () );
+        if ( patch () != null )
+        {
+            version.append ( " (" );
+            version.append ( patch () );
+            version.append ( ")" );
+        }
+        return version.toString ();
     }
 }

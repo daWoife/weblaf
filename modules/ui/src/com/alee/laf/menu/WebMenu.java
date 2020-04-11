@@ -17,33 +17,46 @@
 
 package com.alee.laf.menu;
 
-import com.alee.extended.painter.Painter;
-import com.alee.laf.WebLookAndFeel;
-import com.alee.managers.language.LanguageManager;
-import com.alee.managers.language.LanguageMethods;
-import com.alee.managers.language.updaters.LanguageUpdater;
-import com.alee.managers.log.Log;
-import com.alee.utils.ReflectUtils;
-import com.alee.utils.SwingUtils;
-import com.alee.utils.swing.FontMethods;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.language.*;
+import com.alee.managers.settings.Configuration;
+import com.alee.managers.settings.SettingsMethods;
+import com.alee.managers.settings.SettingsProcessor;
+import com.alee.managers.settings.UISettingsManager;
+import com.alee.managers.style.*;
+import com.alee.painter.Painter;
+import com.alee.painter.PainterSupport;
+import com.alee.utils.swing.extensions.FontMethods;
+import com.alee.utils.swing.extensions.FontMethodsImpl;
+import com.alee.utils.swing.extensions.SizeMethods;
+import com.alee.utils.swing.extensions.SizeMethodsImpl;
 
 import javax.swing.*;
 import java.awt.*;
+import java.beans.PropertyChangeListener;
 
 /**
- * This JMenu extension class provides a direct access to WebMenuUI methods.
+ * {@link JMenu} extension class.
+ * It contains various useful methods to simplify core component usage.
+ *
+ * This component should never be used with a non-Web UIs as it might cause an unexpected behavior.
+ * You could still use that component even if WebLaF is not your application LaF as this component will use Web-UI in any case.
  *
  * @author Mikle Garin
+ * @see JMenu
+ * @see WebMenuUI
+ * @see MenuPainter
  */
-
-public class WebMenu extends JMenu implements LanguageMethods, FontMethods<WebMenu>
+public class WebMenu extends JMenu implements Styleable, LanguageMethods, LanguageEventMethods, SettingsMethods,
+        FontMethods<WebMenu>, SizeMethods<WebMenu>
 {
     /**
      * Constructs new menu.
      */
     public WebMenu ()
     {
-        super ();
+        this ( StyleId.auto );
     }
 
     /**
@@ -53,524 +66,733 @@ public class WebMenu extends JMenu implements LanguageMethods, FontMethods<WebMe
      */
     public WebMenu ( final Icon icon )
     {
-        super ();
-        setIcon ( icon );
+        this ( StyleId.auto, icon );
     }
 
     /**
      * Constructs new menu using the specified settings.
      *
-     * @param s menu text
+     * @param text menu text
      */
-    public WebMenu ( final String s )
+    public WebMenu ( final String text )
     {
-        super ( s );
+        this ( StyleId.auto, text );
     }
 
     /**
      * Constructs new menu using the specified settings.
      *
-     * @param a menu action
+     * @param action menu action
      */
-    public WebMenu ( final Action a )
+    public WebMenu ( final Action action )
     {
-        super ( a );
+        this ( StyleId.auto, action );
     }
 
     /**
      * Constructs new menu using the specified settings.
      *
-     * @param s    menu text
+     * @param text menu text
      * @param icon menu item icon
      */
-    public WebMenu ( final String s, final Icon icon )
+    public WebMenu ( final String text, final Icon icon )
     {
-        super ( s );
+        this ( StyleId.auto, text, icon );
+    }
+
+    /**
+     * Constructs new menu.
+     *
+     * @param id {@link StyleId}
+     */
+    public WebMenu ( final StyleId id )
+    {
+        this ( id, "" );
+    }
+
+    /**
+     * Constructs new menu using the specified settings.
+     *
+     * @param id   {@link StyleId}
+     * @param icon menu icon
+     */
+    public WebMenu ( final StyleId id, final Icon icon )
+    {
+        this ( id, "", icon );
+    }
+
+    /**
+     * Constructs new menu using the specified settings.
+     *
+     * @param id   {@link StyleId}
+     * @param text menu text
+     */
+    public WebMenu ( final StyleId id, final String text )
+    {
+        this ( id, text, null );
+    }
+
+    /**
+     * Constructs new menu using the specified settings.
+     *
+     * @param id     {@link StyleId}
+     * @param action menu action
+     */
+    public WebMenu ( final StyleId id, final Action action )
+    {
+        this ( id, "", null );
+        setAction ( action );
+    }
+
+    /**
+     * Constructs new menu using the specified settings.
+     *
+     * @param id   {@link StyleId}
+     * @param text menu text
+     * @param icon menu item icon
+     */
+    public WebMenu ( final StyleId id, final String text, final Icon icon )
+    {
+        super ( text );
         setIcon ( icon );
+        setStyleId ( id );
     }
 
-    /**
-     * Returns top-level menu border rounding.
-     *
-     * @return top-level menu border rounding
-     */
-    public int getRound ()
+    @Override
+    protected void init ( final String text, final Icon icon )
     {
-        return getWebUI ().getRound ();
+        super.init ( UILanguageManager.getInitialText ( text ), icon );
+        UILanguageManager.registerInitialLanguage ( this, text );
     }
 
-    /**
-     * Sets top-level menu border rounding.
-     *
-     * @param round new top-level menu border rounding
-     */
-    public void setRound ( final int round )
+    @Override
+    public JMenuItem add ( final String text )
     {
-        getWebUI ().setRound ( round );
+        return add ( new WebMenuItem ( text ) );
     }
 
-    /**
-     * Returns top-level menu shade width.
-     *
-     * @return top-level menu shade width
-     */
-    public int getShadeWidth ()
+    @Override
+    public JMenuItem add ( final Action action )
     {
-        return getWebUI ().getShadeWidth ();
+        final JMenuItem menuItem = createActionComponent ( action );
+        menuItem.setAction ( action );
+        return add ( menuItem );
     }
 
-    /**
-     * Sets top-level menu shade width.
-     *
-     * @param shadeWidth new top-level menu shade width
-     */
-    public void setShadeWidth ( final int shadeWidth )
+    @Override
+    public void insert ( final String text, final int index )
     {
-        getWebUI ().setShadeWidth ( shadeWidth );
+        final JMenuItem menuItem = new WebMenuItem ( text );
+        insert ( menuItem, index );
+    }
+
+    @Override
+    public JMenuItem insert ( final Action action, final int index )
+    {
+        final JMenuItem menuItem = createActionComponent ( action );
+        menuItem.setAction ( action );
+        return insert ( menuItem, index );
+    }
+
+    @Override
+    protected JMenuItem createActionComponent ( final Action action )
+    {
+        final JMenuItem mi = new WebMenuItem ()
+        {
+            @Override
+            protected PropertyChangeListener createActionPropertyChangeListener ( final Action action )
+            {
+                PropertyChangeListener actionChangeListener = createActionChangeListener ( this );
+                if ( actionChangeListener == null )
+                {
+                    actionChangeListener = super.createActionPropertyChangeListener ( action );
+                }
+                return actionChangeListener;
+            }
+        };
+        mi.setHorizontalTextPosition ( WebMenuItem.TRAILING );
+        mi.setVerticalTextPosition ( WebMenuItem.CENTER );
+        return mi;
+    }
+
+    @Override
+    public void addSeparator ()
+    {
+        add ( new WebPopupMenuSeparator () );
     }
 
     /**
-     * Returns menu item margin.
+     * Adds separator into menu at the specified Z-index.
      *
-     * @return menu item margin
+     * @param index separator Z-index
      */
+    public void addSeparator ( final int index )
+    {
+        add ( new WebPopupMenuSeparator (), index );
+    }
+
+    /**
+     * Adds separator into menu at the specified Z-index.
+     *
+     * @param index separator Z-index
+     */
+    @Override
+    public void insertSeparator ( final int index )
+    {
+        add ( new WebPopupMenuSeparator (), index );
+    }
+
+    @NotNull
+    @Override
+    public StyleId getDefaultStyleId ()
+    {
+        return StyleId.menu;
+    }
+
+    @NotNull
+    @Override
+    public StyleId getStyleId ()
+    {
+        return StyleManager.getStyleId ( this );
+    }
+
+    @NotNull
+    @Override
+    public StyleId setStyleId ( @NotNull final StyleId id )
+    {
+        return StyleManager.setStyleId ( this, id );
+    }
+
+    @NotNull
+    @Override
+    public StyleId resetStyleId ()
+    {
+        return StyleManager.resetStyleId ( this );
+    }
+
+    @NotNull
+    @Override
+    public Skin getSkin ()
+    {
+        return StyleManager.getSkin ( this );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin )
+    {
+        return StyleManager.setSkin ( this, skin );
+    }
+
+    @Nullable
+    @Override
+    public Skin setSkin ( @NotNull final Skin skin, final boolean recursively )
+    {
+        return StyleManager.setSkin ( this, skin, recursively );
+    }
+
+    @Nullable
+    @Override
+    public Skin resetSkin ()
+    {
+        return StyleManager.resetSkin ( this );
+    }
+
+    @Override
+    public void addStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.addStyleListener ( this, listener );
+    }
+
+    @Override
+    public void removeStyleListener ( @NotNull final StyleListener listener )
+    {
+        StyleManager.removeStyleListener ( this, listener );
+    }
+
+    @Nullable
+    @Override
+    public Painter getCustomPainter ()
+    {
+        return StyleManager.getCustomPainter ( this );
+    }
+
+    @Nullable
+    @Override
+    public Painter setCustomPainter ( @NotNull final Painter painter )
+    {
+        return StyleManager.setCustomPainter ( this, painter );
+    }
+
+    @Override
+    public boolean resetCustomPainter ()
+    {
+        return StyleManager.resetCustomPainter ( this );
+    }
+
+    @NotNull
+    @Override
+    public Shape getPainterShape ()
+    {
+        return PainterSupport.getShape ( this );
+    }
+
+    @Override
+    public boolean isShapeDetectionEnabled ()
+    {
+        return PainterSupport.isShapeDetectionEnabled ( this );
+    }
+
+    @Override
+    public void setShapeDetectionEnabled ( final boolean enabled )
+    {
+        PainterSupport.setShapeDetectionEnabled ( this, enabled );
+    }
+
+    @Nullable
     @Override
     public Insets getMargin ()
     {
-        return getWebUI ().getMargin ();
+        return PainterSupport.getMargin ( this );
     }
 
-    /**
-     * Sets menu item margin.
-     *
-     * @param margin new menu item margin
-     */
     @Override
-    public void setMargin ( final Insets margin )
+    public void setMargin ( final int margin )
     {
-        getWebUI ().setMargin ( margin );
+        PainterSupport.setMargin ( this, margin );
     }
 
-    /**
-     * Returns spacing between menu item content and its left/right borders.
-     *
-     * @return spacing between menu item content and its left/right borders
-     */
-    public int getSideSpacing ()
-    {
-        return getWebUI ().getSideSpacing ();
-    }
-
-    /**
-     * Sets spacing between menu item content and its left/right borders
-     *
-     * @param sideSpacing spacing between menu item content and its left/right borders
-     */
-    public void setSideSpacing ( final int sideSpacing )
-    {
-        getWebUI ().setSideSpacing ( sideSpacing );
-    }
-
-    /**
-     * Returns disabled menu item foreground.
-     *
-     * @return disabled menu item foreground
-     */
-    public Color getDisabledFg ()
-    {
-        return getWebUI ().getDisabledFg ();
-    }
-
-    /**
-     * Sets disabled menu item foreground.
-     *
-     * @param foreground new disabled menu item foreground
-     */
-    public void setDisabledFg ( final Color foreground )
-    {
-        getWebUI ().setDisabledFg ( foreground );
-    }
-
-    /**
-     * Returns top background color for selected item.
-     *
-     * @return top background color for selected item
-     */
-    public Color getSelectedTopBg ()
-    {
-        return getWebUI ().getSelectedTopBg ();
-    }
-
-    /**
-     * Sets top background color for selected item.
-     *
-     * @param background new top background color for selected item
-     */
-    public void setSelectedTopBg ( final Color background )
-    {
-        getWebUI ().setSelectedTopBg ( background );
-    }
-
-    /**
-     * Returns bottom background color for selected item.
-     *
-     * @return bottom background color for selected item
-     */
-    public Color getSelectedBottomBg ()
-    {
-        return getWebUI ().getSelectedBottomBg ();
-    }
-
-    /**
-     * Sets bottom background color for selected item.
-     *
-     * @param background new bottom background color for selected item
-     */
-    public void setSelectedBottomBg ( final Color background )
-    {
-        getWebUI ().setSelectedBottomBg ( background );
-    }
-
-    /**
-     * Returns gap between menu icon/text and submenu arrow.
-     *
-     * @return gap between menu icon/text and submenu arrow
-     */
-    public int getArrowGap ()
-    {
-        return getWebUI ().getArrowGap ();
-    }
-
-    /**
-     * Sets gap between menu icon/text and submenu arrow.
-     *
-     * @param gap new gap between menu icon/text and submenu arrow
-     */
-    public void setArrowGap ( final int gap )
-    {
-        getWebUI ().setArrowGap ( gap );
-    }
-
-    /**
-     * Returns whether should align all item texts to a single vertical line within single popup menu or not.
-     *
-     * @return true if should align all item texts to a single vertical line within single popup menu, false otherwise
-     */
-    public boolean isAlignTextToMenuIcons ()
-    {
-        return getWebUI ().isAlignTextToMenuIcons ();
-    }
-
-    /**
-     * Sets whether should align all item texts to a single vertical line within single popup menu or not.
-     *
-     * @param align whether should align all item texts to a single vertical line within single popup menu or not
-     */
-    public void setAlignTextToMenuIcons ( final boolean align )
-    {
-        getWebUI ().setAlignTextToMenuIcons ( align );
-    }
-
-    /**
-     * Returns icon alignment.
-     *
-     * @return icon alignment
-     */
-    public int getIconAlignment ()
-    {
-        return getWebUI ().getIconAlignment ();
-    }
-
-    /**
-     * Sets icon alignment
-     *
-     * @param alignment new icon alignment
-     */
-    public void setIconAlignment ( final int alignment )
-    {
-        getWebUI ().setIconAlignment ( alignment );
-    }
-
-    /**
-     * Returns menu item painter.
-     *
-     * @return menu item painter
-     */
-    public Painter getPainter ()
-    {
-        return getWebUI ().getPainter ();
-    }
-
-    /**
-     * Sets menu item painter.
-     *
-     * @param painter new menu item painter
-     */
-    public void setPainter ( final Painter painter )
-    {
-        getWebUI ().setPainter ( painter );
-    }
-
-    /**
-     * Returns Web-UI applied to this class.
-     *
-     * @return Web-UI applied to this class
-     */
-    public WebMenuUI getWebUI ()
-    {
-        return ( WebMenuUI ) getUI ();
-    }
-
-    /**
-     * Installs a Web-UI into this component.
-     */
     @Override
-    public void updateUI ()
+    public void setMargin ( final int top, final int left, final int bottom, final int right )
     {
-        if ( getUI () == null || !( getUI () instanceof WebMenuUI ) )
-        {
-            try
-            {
-                setUI ( ( WebMenuUI ) ReflectUtils.createInstance ( WebLookAndFeel.menuUI ) );
-            }
-            catch ( final Throwable e )
-            {
-                Log.error ( this, e );
-                setUI ( new WebMenuUI () );
-            }
-        }
-        else
-        {
-            setUI ( getUI () );
-        }
-        if ( getPopupMenu () != null )
-        {
-            getPopupMenu ().updateUI ();
-        }
+        PainterSupport.setMargin ( this, top, left, bottom, right );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setLanguage ( final String key, final Object... data )
+    public void setMargin ( @Nullable final Insets margin )
     {
-        LanguageManager.registerComponent ( this, key, data );
+        PainterSupport.setMargin ( this, margin );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Nullable
     @Override
-    public void updateLanguage ( final Object... data )
+    public Insets getPadding ()
     {
-        LanguageManager.updateComponent ( this, data );
+        return PainterSupport.getPadding ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void updateLanguage ( final String key, final Object... data )
+    public void setPadding ( final int padding )
     {
-        LanguageManager.updateComponent ( this, key, data );
+        PainterSupport.setPadding ( this, padding );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void setPadding ( final int top, final int left, final int bottom, final int right )
+    {
+        PainterSupport.setPadding ( this, top, left, bottom, right );
+    }
+
+    @Override
+    public void setPadding ( @Nullable final Insets padding )
+    {
+        PainterSupport.setPadding ( this, padding );
+    }
+
+    @Nullable
+    @Override
+    public String getLanguage ()
+    {
+        return UILanguageManager.getComponentKey ( this );
+    }
+
+    @Override
+    public void setLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.registerComponent ( this, key, data );
+    }
+
+    @Override
+    public void updateLanguage ( @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, data );
+    }
+
+    @Override
+    public void updateLanguage ( @NotNull final String key, @Nullable final Object... data )
+    {
+        UILanguageManager.updateComponent ( this, key, data );
+    }
+
     @Override
     public void removeLanguage ()
     {
-        LanguageManager.unregisterComponent ( this );
+        UILanguageManager.unregisterComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isLanguageSet ()
     {
-        return LanguageManager.isRegisteredComponent ( this );
+        return UILanguageManager.isRegisteredComponent ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setLanguageUpdater ( final LanguageUpdater updater )
+    public void setLanguageUpdater ( @NotNull final LanguageUpdater updater )
     {
-        LanguageManager.registerLanguageUpdater ( this, updater );
+        UILanguageManager.registerLanguageUpdater ( this, updater );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void removeLanguageUpdater ()
     {
-        LanguageManager.unregisterLanguageUpdater ( this );
+        UILanguageManager.unregisterLanguageUpdater ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void addLanguageListener ( @NotNull final LanguageListener listener )
+    {
+        UILanguageManager.addLanguageListener ( getRootPane (), listener );
+    }
+
+    @Override
+    public void removeLanguageListener ( @NotNull final LanguageListener listener )
+    {
+        UILanguageManager.removeLanguageListener ( getRootPane (), listener );
+    }
+
+    @Override
+    public void removeLanguageListeners ()
+    {
+        UILanguageManager.removeLanguageListeners ( getRootPane () );
+    }
+
+    @Override
+    public void addDictionaryListener ( @NotNull final DictionaryListener listener )
+    {
+        UILanguageManager.addDictionaryListener ( getRootPane (), listener );
+    }
+
+    @Override
+    public void removeDictionaryListener ( @NotNull final DictionaryListener listener )
+    {
+        UILanguageManager.removeDictionaryListener ( getRootPane (), listener );
+    }
+
+    @Override
+    public void removeDictionaryListeners ()
+    {
+        UILanguageManager.removeDictionaryListeners ( getRootPane () );
+    }
+
+    @Override
+    public void registerSettings ( final Configuration configuration )
+    {
+        UISettingsManager.registerComponent ( this, configuration );
+    }
+
+    @Override
+    public void registerSettings ( final SettingsProcessor processor )
+    {
+        UISettingsManager.registerComponent ( this, processor );
+    }
+
+    @Override
+    public void unregisterSettings ()
+    {
+        UISettingsManager.unregisterComponent ( this );
+    }
+
+    @Override
+    public void loadSettings ()
+    {
+        UISettingsManager.loadSettings ( this );
+    }
+
+    @Override
+    public void saveSettings ()
+    {
+        UISettingsManager.saveSettings ( this );
+    }
+
     @Override
     public WebMenu setPlainFont ()
     {
-        return SwingUtils.setPlainFont ( this );
+        return FontMethodsImpl.setPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setPlainFont ( final boolean apply )
     {
-        return SwingUtils.setPlainFont ( this, apply );
+        return FontMethodsImpl.setPlainFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isPlainFont ()
     {
-        return SwingUtils.isPlainFont ( this );
+        return FontMethodsImpl.isPlainFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setBoldFont ()
     {
-        return SwingUtils.setBoldFont ( this );
+        return FontMethodsImpl.setBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setBoldFont ( final boolean apply )
     {
-        return SwingUtils.setBoldFont ( this, apply );
+        return FontMethodsImpl.setBoldFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isBoldFont ()
     {
-        return SwingUtils.isBoldFont ( this );
+        return FontMethodsImpl.isBoldFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setItalicFont ()
     {
-        return SwingUtils.setItalicFont ( this );
+        return FontMethodsImpl.setItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setItalicFont ( final boolean apply )
     {
-        return SwingUtils.setItalicFont ( this, apply );
+        return FontMethodsImpl.setItalicFont ( this, apply );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isItalicFont ()
     {
-        return SwingUtils.isItalicFont ( this );
+        return FontMethodsImpl.isItalicFont ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setFontStyle ( final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontStyle ( this, bold, italic );
+        return FontMethodsImpl.setFontStyle ( this, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setFontStyle ( final int style )
     {
-        return SwingUtils.setFontStyle ( this, style );
+        return FontMethodsImpl.setFontStyle ( this, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setFontSize ( final int fontSize )
     {
-        return SwingUtils.setFontSize ( this, fontSize );
+        return FontMethodsImpl.setFontSize ( this, fontSize );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu changeFontSize ( final int change )
     {
-        return SwingUtils.changeFontSize ( this, change );
+        return FontMethodsImpl.changeFontSize ( this, change );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getFontSize ()
     {
-        return SwingUtils.getFontSize ( this );
+        return FontMethodsImpl.getFontSize ( this );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setFontSizeAndStyle ( final int fontSize, final boolean bold, final boolean italic )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, bold, italic );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, bold, italic );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setFontSizeAndStyle ( final int fontSize, final int style )
     {
-        return SwingUtils.setFontSizeAndStyle ( this, fontSize, style );
+        return FontMethodsImpl.setFontSizeAndStyle ( this, fontSize, style );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public WebMenu setFontName ( final String fontName )
     {
-        return SwingUtils.setFontName ( this, fontName );
+        return FontMethodsImpl.setFontName ( this, fontName );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getFontName ()
     {
-        return SwingUtils.getFontName ( this );
+        return FontMethodsImpl.getFontName ( this );
+    }
+
+    @Override
+    public int getPreferredWidth ()
+    {
+        return SizeMethodsImpl.getPreferredWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setPreferredWidth ( final int preferredWidth )
+    {
+        return SizeMethodsImpl.setPreferredWidth ( this, preferredWidth );
+    }
+
+    @Override
+    public int getPreferredHeight ()
+    {
+        return SizeMethodsImpl.getPreferredHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setPreferredHeight ( final int preferredHeight )
+    {
+        return SizeMethodsImpl.setPreferredHeight ( this, preferredHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getPreferredSize ()
+    {
+        return SizeMethodsImpl.getPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalPreferredSize ()
+    {
+        return SizeMethodsImpl.getOriginalPreferredSize ( this, super.getPreferredSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setPreferredSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setPreferredSize ( this, width, height );
+    }
+
+    @Override
+    public int getMaximumWidth ()
+    {
+        return SizeMethodsImpl.getMaximumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setMaximumWidth ( final int maximumWidth )
+    {
+        return SizeMethodsImpl.setMaximumWidth ( this, maximumWidth );
+    }
+
+    @Override
+    public int getMaximumHeight ()
+    {
+        return SizeMethodsImpl.getMaximumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setMaximumHeight ( final int maximumHeight )
+    {
+        return SizeMethodsImpl.setMaximumHeight ( this, maximumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMaximumSize ()
+    {
+        return SizeMethodsImpl.getMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMaximumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMaximumSize ( this, super.getMaximumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setMaximumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMaximumSize ( this, width, height );
+    }
+
+    @Override
+    public int getMinimumWidth ()
+    {
+        return SizeMethodsImpl.getMinimumWidth ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setMinimumWidth ( final int minimumWidth )
+    {
+        return SizeMethodsImpl.setMinimumWidth ( this, minimumWidth );
+    }
+
+    @Override
+    public int getMinimumHeight ()
+    {
+        return SizeMethodsImpl.getMinimumHeight ( this );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setMinimumHeight ( final int minimumHeight )
+    {
+        return SizeMethodsImpl.setMinimumHeight ( this, minimumHeight );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getMinimumSize ()
+    {
+        return SizeMethodsImpl.getMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public Dimension getOriginalMinimumSize ()
+    {
+        return SizeMethodsImpl.getOriginalMinimumSize ( this, super.getMinimumSize () );
+    }
+
+    @NotNull
+    @Override
+    public WebMenu setMinimumSize ( final int width, final int height )
+    {
+        return SizeMethodsImpl.setMinimumSize ( this, width, height );
+    }
+
+    /**
+     * Returns the look and feel (LaF) object that renders this component.
+     *
+     * @return the {@link WebMenuUI} object that renders this component
+     */
+    @Override
+    public WebMenuUI getUI ()
+    {
+        return ( WebMenuUI ) super.getUI ();
+    }
+
+    /**
+     * Sets the LaF object that renders this component.
+     *
+     * @param ui {@link WebMenuUI}
+     */
+    public void setUI ( final WebMenuUI ui )
+    {
+        super.setUI ( ui );
+    }
+
+    @Override
+    public void updateUI ()
+    {
+        StyleManager.getDescriptor ( this ).updateUI ( this );
+    }
+
+    @Override
+    public String getUIClassID ()
+    {
+        return StyleManager.getDescriptor ( this ).getUIClassId ();
     }
 }

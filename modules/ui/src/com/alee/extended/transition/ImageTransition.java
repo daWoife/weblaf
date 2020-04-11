@@ -18,9 +18,9 @@
 package com.alee.extended.transition;
 
 import com.alee.extended.transition.effects.TransitionEffect;
+import com.alee.laf.WebLookAndFeel;
 import com.alee.utils.CollectionUtils;
 import com.alee.utils.MathUtils;
-import com.alee.utils.SwingUtils;
 import com.alee.utils.swing.WebTimer;
 
 import javax.swing.*;
@@ -32,9 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User: mgarin Date: 27.10.11 Time: 14:58
+ * @author Mikle Garin
  */
-
 public class ImageTransition extends JComponent implements ActionListener
 {
     // Transition listeners
@@ -71,7 +70,7 @@ public class ImageTransition extends JComponent implements ActionListener
         this.currentImage = currentImage;
         this.otherImage = otherImage;
 
-        SwingUtils.setOrientation ( this );
+        WebLookAndFeel.setOrientation ( this );
         setOpaque ( false );
     }
 
@@ -148,7 +147,7 @@ public class ImageTransition extends JComponent implements ActionListener
 
     public void setTransitionEffect ( final TransitionEffect transitionEffect )
     {
-        transitionEffects = transitionEffect != null ? CollectionUtils.copy ( transitionEffect ) : null;
+        transitionEffects = transitionEffect != null ? CollectionUtils.asList ( transitionEffect ) : null;
     }
 
     public void setTransitionEffects ( final List<TransitionEffect> transitionEffects )
@@ -158,7 +157,7 @@ public class ImageTransition extends JComponent implements ActionListener
 
     public void setTransitionEffects ( final TransitionEffect... transitionEffects )
     {
-        this.transitionEffects = transitionEffects != null ? CollectionUtils.copy ( transitionEffects ) : null;
+        this.transitionEffects = transitionEffects != null ? CollectionUtils.asList ( transitionEffects ) : null;
     }
 
     public void destroy ()

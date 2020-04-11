@@ -17,10 +17,13 @@
 
 package com.alee.extended.image;
 
-import com.alee.extended.drag.ImageDropHandler;
+import com.alee.api.annotations.NotNull;
+import com.alee.laf.WebLookAndFeel;
+import com.alee.managers.drag.transfer.ImageTransferHandler;
 import com.alee.utils.GraphicsUtils;
 import com.alee.utils.ImageUtils;
-import com.alee.utils.SwingUtils;
+import com.alee.utils.MathUtils;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -35,7 +38,6 @@ import java.util.List;
  *
  * @author Mikle Garin
  */
-
 public class WebImageDrop extends JComponent
 {
     /**
@@ -103,27 +105,29 @@ public class WebImageDrop extends JComponent
         this.image = image;
         updatePreview ();
 
-        SwingUtils.setOrientation ( this );
+        WebLookAndFeel.setOrientation ( this );
 
         // Image drop handler
-        setTransferHandler ( new ImageDropHandler ()
+        setTransferHandler ( new ImageTransferHandler ( false, true )
         {
             @Override
-            protected boolean imagesImported ( final List<ImageIcon> images )
+            protected boolean imagesImported ( @NotNull final List<ImageIcon> images )
             {
+                boolean imported = false;
                 for ( final ImageIcon image : images )
                 {
                     try
                     {
-                        setImage ( ImageUtils.getBufferedImage ( image ) );
-                        return true;
+                        setImage ( ImageUtils.toBufferedImage ( image ) );
+                        imported = true;
+                        break;
                     }
-                    catch ( final Throwable e )
+                    catch ( final Exception e )
                     {
-                        //
+                        LoggerFactory.getLogger ( WebImageDrop.class ).error ( e.toString (), e );
                     }
                 }
-                return false;
+                return imported;
             }
         } );
     }
@@ -233,10 +237,10 @@ public class WebImageDrop extends JComponent
         if ( image != null )
         {
             // Creating image preview
-            image = ImageUtils.createPreviewImage ( actualImage, width, height );
+            image = ImageUtils.createImageThumbnail ( actualImage, width, height );
 
             // Restore decoration
-            final BufferedImage f = ImageUtils.createCompatibleImage ( image, Transparency.TRANSLUCENT );
+            final BufferedImage f = ImageUtils.createCompatibleImage ( image.getWidth (), image.getHeight (), Transparency.TRANSLUCENT );
             final Graphics2D g2d = f.createGraphics ();
             GraphicsUtils.setupAntialias ( g2d );
             g2d.setPaint ( Color.WHITE );
@@ -250,9 +254,6 @@ public class WebImageDrop extends JComponent
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void paintComponent ( final Graphics g )
     {
@@ -275,7 +276,7 @@ public class WebImageDrop extends JComponent
             g2d.fill ( border );
 
             g2d.setStroke ( new BasicStroke ( 2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f,
-                    new float[]{ Math.max ( 5f, Math.min ( Math.max ( width, height ) / 6, 10f ) ), 8f }, 4f ) );
+                    new float[]{ MathUtils.limit ( 5f, Math.max ( width, height ) / 6, 10f ), 8f }, 4f ) );
             g2d.setPaint ( Color.LIGHT_GRAY );
             g2d.draw ( border );
         }
@@ -283,9 +284,6 @@ public class WebImageDrop extends JComponent
         GraphicsUtils.restoreAntialias ( g2d, aa );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Dimension getPreferredSize ()
     {

@@ -17,20 +17,105 @@
 
 package com.alee.laf.toolbar;
 
-import com.alee.laf.separator.WebSeparatorUI;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.annotations.Nullable;
+import com.alee.managers.style.StyleManager;
+import com.alee.painter.PainterSupport;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
+import java.awt.*;
 
 /**
- * User: mgarin Date: 17.08.11 Time: 22:58
+ * Custom UI for {@link javax.swing.JToolBar.Separator} component.
+ *
+ * @param <C> component type
+ * @author Mikle Garin
  */
-
-public class WebToolBarSeparatorUI extends WebSeparatorUI
+public class WebToolBarSeparatorUI<C extends JToolBar.Separator> extends WToolBarSeparatorUI<C>
 {
-    @SuppressWarnings ( "UnusedParameters" )
-    public static ComponentUI createUI ( final JComponent c )
+    /**
+     * Returns an instance of the {@link WebToolBarSeparatorUI} for the specified component.
+     * This tricky method is used by {@link UIManager} to create component UIs when needed.
+     *
+     * @param c component that will use UI instance
+     * @return instance of the {@link WebToolBarSeparatorUI}
+     */
+    @NotNull
+    public static ComponentUI createUI ( @NotNull final JComponent c )
     {
         return new WebToolBarSeparatorUI ();
+    }
+
+    @Override
+    public void installUI ( @NotNull final JComponent c )
+    {
+        // Installing UI
+        super.installUI ( c );
+
+        // Applying skin
+        StyleManager.installSkin ( separator );
+    }
+
+    @Override
+    public void uninstallUI ( @NotNull final JComponent c )
+    {
+        // Uninstalling applied skin
+        StyleManager.uninstallSkin ( separator );
+
+        // Uninstalling UI
+        super.uninstallUI ( c );
+    }
+
+    @Override
+    public boolean contains ( @NotNull final JComponent c, final int x, final int y )
+    {
+        return PainterSupport.contains ( c, this, x, y );
+    }
+
+    @Override
+    public int getBaseline ( @NotNull final JComponent c, final int width, final int height )
+    {
+        return PainterSupport.getBaseline ( c, this, width, height );
+    }
+
+    @NotNull
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getBaselineResizeBehavior ( c, this );
+    }
+
+    @Override
+    public void paint ( @NotNull final Graphics g, @NotNull final JComponent c )
+    {
+        PainterSupport.paint ( g, c, this );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getPreferredSize ( @NotNull final JComponent c )
+    {
+        return PainterSupport.getPreferredSize ( c );
+    }
+
+    @Nullable
+    @Override
+    public Dimension getMaximumSize ( @NotNull final JComponent c )
+    {
+        final Dimension ps = getPreferredSize ( c );
+        if ( ps != null )
+        {
+            // Fix for #347
+            if ( separator.getOrientation () == SwingConstants.VERTICAL )
+            {
+                ps.height = Short.MAX_VALUE;
+            }
+            else
+            {
+                ps.width = Short.MAX_VALUE;
+            }
+        }
+        return ps;
     }
 }

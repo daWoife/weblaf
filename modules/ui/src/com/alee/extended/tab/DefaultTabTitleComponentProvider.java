@@ -17,81 +17,28 @@
 
 package com.alee.extended.tab;
 
-import com.alee.laf.button.WebButton;
-import com.alee.laf.label.WebLabel;
-import com.alee.laf.panel.WebPanel;
+import com.alee.api.annotations.NotNull;
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 
 /**
- * Default document tab title provider.
- * It is used in all WebDocumentPanes by default but can be easily replaced.
+ * Default {@link WebDocumentPane} tab title {@link JComponent} provider.
  *
+ * @param <T> {@link DocumentData} type
  * @author Mikle Garin
- * @see com.alee.extended.tab.TabTitleComponentProvider
+ * @see <a href="https://github.com/mgarin/weblaf/wiki/How-to-use-WebDocumentPane">How to use WebDocumentPane</a>
+ * @see TabTitleComponent
+ * @see TabTitleComponentProvider
+ * @see WebDocumentPane
  */
-
 public class DefaultTabTitleComponentProvider<T extends DocumentData> implements TabTitleComponentProvider<T>
 {
-    /**
-     * {@inheritDoc}
-     */
+    @NotNull
     @Override
-    public JComponent createTabTitleComponent ( final PaneData<T> paneData, final T document )
+    public JComponent createTabTitleComponent ( @NotNull final PaneData<T> paneData, @NotNull final T document,
+                                                @NotNull final MouseAdapter mouseAdapter )
     {
-        final WebPanel tabTitleComponent = new WebPanel ( new BorderLayout ( 2, 0 ) );
-        tabTitleComponent.setOpaque ( false );
-
-        // Creating title label
-        tabTitleComponent.add ( createTitleLabel ( paneData, document ), BorderLayout.CENTER );
-
-        // Creating close button
-        if ( paneData.getDocumentPane ().isCloseable () && document.isCloseable () )
-        {
-            tabTitleComponent.add ( createCloseButton ( paneData, document ), BorderLayout.LINE_END );
-        }
-
-        return tabTitleComponent;
-    }
-
-    /**
-     * Returns newly created tab title label.
-     *
-     * @param paneData PaneData containing document
-     * @param document document to create tab title component for
-     * @return newly created tab title label
-     */
-    @SuppressWarnings ( "UnusedParameters" )
-    protected JComponent createTitleLabel ( final PaneData<T> paneData, final T document )
-    {
-        final WebLabel titleLabel = new WebLabel ( document.getTitle (), document.getIcon () );
-        titleLabel.setForeground ( document.getForeground () );
-        return titleLabel;
-    }
-
-    /**
-     * Returns newly created tab close button.
-     *
-     * @param paneData PaneData containing document
-     * @param document document to create tab title component for
-     * @return newly created tab close button
-     */
-    protected JComponent createCloseButton ( final PaneData<T> paneData, final T document )
-    {
-        final WebButton closeButton = new WebButton ( WebDocumentPane.closeTabIcon, WebDocumentPane.closeTabRolloverIcon );
-        closeButton.setUndecorated ( true );
-        closeButton.setFocusable ( false );
-        closeButton.addActionListener ( new ActionListener ()
-        {
-            @Override
-            public void actionPerformed ( final ActionEvent e )
-            {
-                paneData.close ( document );
-            }
-        } );
-        return closeButton;
+        return new TabTitleComponent<T> ( paneData, document, mouseAdapter );
     }
 }

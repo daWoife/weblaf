@@ -17,25 +17,25 @@
 
 package com.alee.extended.syntax;
 
-import com.alee.global.StyleConstants;
+import com.alee.api.annotations.NotNull;
 import com.alee.utils.FileUtils;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 import java.awt.*;
 import java.io.File;
+import java.util.Locale;
 
 /**
  * Custom settings presets for WebSyntaxArea.
  *
  * @author Mikle Garin
  */
-
 public enum SyntaxPreset
 {
     base ( PresetType.settings )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setAntiAliasingEnabled ( true );
                     syntaxArea.setUseFocusableTips ( true );
@@ -50,7 +50,7 @@ public enum SyntaxPreset
     size ( PresetType.style )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setRows ( 4 );
                     syntaxArea.setColumns ( 1 );
@@ -60,7 +60,7 @@ public enum SyntaxPreset
     margin ( PresetType.style )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setMargin ( new Insets ( 5, 5, 5, 5 ) );
                 }
@@ -69,7 +69,7 @@ public enum SyntaxPreset
     historyLimit ( PresetType.settings )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.getUndoManager ().setLimit ( 50 );
                 }
@@ -78,7 +78,7 @@ public enum SyntaxPreset
     viewable ( PresetType.settings )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setEditable ( false );
                 }
@@ -86,7 +86,7 @@ public enum SyntaxPreset
     editable ( PresetType.settings )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setEditable ( true );
                 }
@@ -95,35 +95,33 @@ public enum SyntaxPreset
     hideMenu ( PresetType.settings )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setPopupMenu ( null );
                 }
             },
 
-    transparent ( PresetType.style )
-            {
-                @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
-                {
-                    syntaxArea.setBackground ( StyleConstants.transparent );
-                    syntaxArea.setOpaque ( false );
-                }
-            },
     opaque ( PresetType.style )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
-                    syntaxArea.setBackground ( Color.WHITE );
                     syntaxArea.setOpaque ( true );
+                }
+            },
+    nonOpaque ( PresetType.style )
+            {
+                @Override
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
+                {
+                    syntaxArea.setOpaque ( false );
                 }
             },
 
     java ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_JAVA );
                 }
@@ -131,7 +129,7 @@ public enum SyntaxPreset
     xml ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_XML );
                 }
@@ -139,7 +137,7 @@ public enum SyntaxPreset
     html ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_HTML );
                 }
@@ -147,7 +145,7 @@ public enum SyntaxPreset
     css ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_CSS );
                 }
@@ -155,7 +153,7 @@ public enum SyntaxPreset
     js ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT );
                 }
@@ -163,7 +161,7 @@ public enum SyntaxPreset
     php ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_PHP );
                 }
@@ -171,7 +169,7 @@ public enum SyntaxPreset
     sql ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_SQL );
                 }
@@ -179,7 +177,7 @@ public enum SyntaxPreset
     none ( PresetType.syntax )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     syntaxArea.setSyntaxEditingStyle ( SyntaxConstants.SYNTAX_STYLE_NONE );
                 }
@@ -188,7 +186,7 @@ public enum SyntaxPreset
     ideaTheme ( PresetType.theme )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     SyntaxTheme.idea.apply ( syntaxArea );
                 }
@@ -196,7 +194,7 @@ public enum SyntaxPreset
     darkTheme ( PresetType.theme )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     SyntaxTheme.dark.apply ( syntaxArea );
                 }
@@ -204,7 +202,7 @@ public enum SyntaxPreset
     vsTheme ( PresetType.theme )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     SyntaxTheme.vs.apply ( syntaxArea );
                 }
@@ -212,7 +210,7 @@ public enum SyntaxPreset
     eclipseTheme ( PresetType.theme )
             {
                 @Override
-                public void apply ( final WebSyntaxArea syntaxArea )
+                public void apply ( @NotNull final WebSyntaxArea syntaxArea )
                 {
                     SyntaxTheme.eclipse.apply ( syntaxArea );
                 }
@@ -221,6 +219,7 @@ public enum SyntaxPreset
     /**
      * SyntaxPreset type.
      */
+    @NotNull
     private final PresetType type;
 
     /**
@@ -228,7 +227,7 @@ public enum SyntaxPreset
      *
      * @param type SyntaxPreset type
      */
-    private SyntaxPreset ( final PresetType type )
+    private SyntaxPreset ( @NotNull final PresetType type )
     {
         this.type = type;
     }
@@ -238,6 +237,7 @@ public enum SyntaxPreset
      *
      * @return SyntaxPreset type
      */
+    @NotNull
     public PresetType getType ()
     {
         return type;
@@ -248,7 +248,7 @@ public enum SyntaxPreset
      *
      * @param syntaxArea WebSyntaxArea
      */
-    public abstract void apply ( WebSyntaxArea syntaxArea );
+    public abstract void apply ( @NotNull WebSyntaxArea syntaxArea );
 
     /**
      * Returns syntax preset for the specified file.
@@ -256,7 +256,8 @@ public enum SyntaxPreset
      * @param file file
      * @return syntax preset for the specified file
      */
-    public static SyntaxPreset getSyntaxPreset ( final File file )
+    @NotNull
+    public static SyntaxPreset getSyntaxPreset ( @NotNull final File file )
     {
         return getSyntaxPreset ( file.getName () );
     }
@@ -267,41 +268,44 @@ public enum SyntaxPreset
      * @param file file name
      * @return syntax preset for the specified file name
      */
-    public static SyntaxPreset getSyntaxPreset ( final String file )
+    @NotNull
+    public static SyntaxPreset getSyntaxPreset ( @NotNull final String file )
     {
+        final SyntaxPreset preset;
         final String fe = FileUtils.getFileExtPart ( file, false );
-        final String ext = fe.length () > 0 ? fe.toLowerCase () : file;
+        final String ext = fe.length () > 0 ? fe.toLowerCase ( Locale.ROOT ) : file;
         if ( ext.contains ( "java" ) )
         {
-            return java;
+            preset = java;
         }
         else if ( ext.contains ( "xml" ) )
         {
-            return xml;
+            preset = xml;
         }
         else if ( ext.contains ( "htm" ) )
         {
-            return html;
+            preset = html;
         }
         else if ( ext.contains ( "css" ) )
         {
-            return css;
+            preset = css;
         }
         else if ( ext.contains ( "js" ) || ext.contains ( "javascript" ) )
         {
-            return js;
+            preset = js;
         }
         else if ( ext.contains ( "php" ) )
         {
-            return php;
+            preset = php;
         }
         else if ( ext.contains ( "sql" ) )
         {
-            return sql;
+            preset = sql;
         }
         else
         {
-            return none;
+            preset = none;
         }
+        return preset;
     }
 }

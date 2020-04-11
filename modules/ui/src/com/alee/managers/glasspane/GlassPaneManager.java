@@ -17,61 +17,65 @@
 
 package com.alee.managers.glasspane;
 
-import com.alee.utils.SwingUtils;
+import com.alee.api.annotations.NotNull;
+import com.alee.api.jdk.Function;
+import com.alee.utils.CoreSwingUtils;
+import com.alee.utils.swing.WeakComponentData;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * This manager provides an instance of WebGlassPane for specified JRootPane instance.
+ * This manager provides an instance of {@link WebGlassPane} for specified {@link JRootPane} instance.
  *
  * @author Mikle Garin
+ * @see <a href="https://github.com/mgarin/weblaf/wiki/How-to-use-GlassPaneManager">How to use GlassPaneManager</a>
  * @see WebGlassPane
  */
-
-public class GlassPaneManager
+public final class GlassPaneManager
 {
-    public static final String WEB_GLASS_PANE_KEY = "web.glass.pane";
+    /**
+     * {@link WebGlassPane}s used within various windows.
+     */
+    private static final WeakComponentData<JComponent, WebGlassPane> glassPanes =
+            new WeakComponentData<JComponent, WebGlassPane> ( "GlassPaneManager.WebGlassPane", 3 );
 
     /**
-     * Returns registered WebGlassPane for JRootPane under the specified component.
-     * If WebGlassPane is not yet registered for that JRootPane then it will be created.
-     * Might return null if no WebGlassPane could be registered for that JRootPane.
+     * Returns registered {@link WebGlassPane} for {@link JRootPane} under the specified component.
+     * If {@link WebGlassPane} is not yet registered for that {@link JRootPane} then it will be created.
+     * Might return null if no {@link WebGlassPane} could be registered for that {@link JRootPane}.
      *
      * @param component component to process
-     * @return registered WebGlassPane for JRootPane under the specified component or null if it cannot be registered
+     * @return registered {@link WebGlassPane} for {@link JRootPane} under the specified component or null if it cannot be registered
      */
-    public static WebGlassPane getGlassPane ( final Component component )
+    @NotNull
+    public static WebGlassPane getGlassPane ( @NotNull final Component component )
     {
-        return getGlassPane ( SwingUtils.getRootPane ( component ) );
+        return getGlassPane ( CoreSwingUtils.getNonNullRootPane ( component ) );
     }
 
     /**
-     * Returns registered WebGlassPane for the specified JRootPane.
-     * If WebGlassPane is not yet registered for that JRootPane then it will be created.
-     * Might return null if no WebGlassPane could be registered for that JRootPane.
+     * Returns registered {@link WebGlassPane} for the specified {@link JRootPane}.
+     * If {@link WebGlassPane} is not yet registered for that {@link JRootPane} then it will be created.
+     * Might return null if no {@link WebGlassPane} could be registered for that {@link JRootPane}.
      *
-     * @param rootPane JRootPane to process
-     * @return registered WebGlassPane for JRootPane under the specified component or null if it cannot be registered
+     * @param rootPane {@link JRootPane} to process
+     * @return registered {@link WebGlassPane} for {@link JRootPane} under the specified component or null if it cannot be registered
      */
-    public static WebGlassPane getGlassPane ( final JRootPane rootPane )
+    @NotNull
+    public static WebGlassPane getGlassPane ( @NotNull final JRootPane rootPane )
     {
-        if ( rootPane != null )
+        return glassPanes.get ( rootPane, new Function<JComponent, WebGlassPane> ()
         {
-            WebGlassPane glassPane = ( WebGlassPane ) rootPane.getClientProperty ( WEB_GLASS_PANE_KEY );
-            if ( glassPane == null )
+            @Override
+            public WebGlassPane apply ( final JComponent component )
             {
-                glassPane = new WebGlassPane ();
+                final WebGlassPane glassPane = new WebGlassPane ();
                 rootPane.setGlassPane ( glassPane );
                 glassPane.setVisible ( true );
                 rootPane.invalidate ();
-                rootPane.putClientProperty ( WEB_GLASS_PANE_KEY, glassPane );
+                return glassPane;
             }
-            return glassPane;
-        }
-        else
-        {
-            return null;
-        }
+        } );
     }
 }

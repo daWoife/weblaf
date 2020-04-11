@@ -17,41 +17,42 @@
 
 package com.alee.utils.swing.menu;
 
+import com.alee.api.annotations.NotNull;
 import com.alee.laf.menu.WebPopupMenu;
+import com.alee.managers.style.StyleId;
 
 /**
- * Special generator that simplifies and shortens popup menu creation code.
+ * Special generator that simplifies and shortens {@link WebPopupMenu} creation code.
  *
  * @author Mikle Garin
- * @see com.alee.utils.swing.menu.AbstractMenuGenerator
+ * @see AbstractMenuGenerator
  */
-
 public class PopupMenuGenerator extends AbstractMenuGenerator<WebPopupMenu>
 {
     /**
-     * Constructs new popup menu generator using default popup menu.
+     * Constructs new {@link PopupMenuGenerator} using default {@link WebPopupMenu}.
      */
     public PopupMenuGenerator ()
     {
-        super ( new WebPopupMenu () );
+        this ( StyleId.auto );
     }
 
     /**
-     * Constructs new popup menu generator using default popup menu using the specified style ID.
+     * Constructs new {@link PopupMenuGenerator} using default {@link WebPopupMenu} and the specified {@link StyleId}.
      *
-     * @param styleId popup menu style ID
+     * @param id {@link StyleId}
      */
-    public PopupMenuGenerator ( final String styleId )
+    public PopupMenuGenerator ( @NotNull final StyleId id )
     {
-        super ( new WebPopupMenu ( styleId ) );
+        this ( new WebPopupMenu ( id ) );
     }
 
     /**
-     * Constructs new popup menu generator using the specified popup menu.
+     * Constructs new {@link PopupMenuGenerator} using the specified {@link WebPopupMenu}.
      *
-     * @param menu popup menu
+     * @param menu {@link WebPopupMenu}
      */
-    public PopupMenuGenerator ( final WebPopupMenu menu )
+    public PopupMenuGenerator ( @NotNull final WebPopupMenu menu )
     {
         super ( menu );
     }
